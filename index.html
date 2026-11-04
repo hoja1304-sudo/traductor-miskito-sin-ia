@@ -1,0 +1,2095 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Traductor Miskito sin IA</title>
+<meta name="description" content="Traductor español–miskito que funciona sin internet y sin inteligencia artificial, con la gramática y el vocabulario del material bilingüe del MEP.">
+<style>
+:root{
+  --bg:#f3f8f7; --panel:#ffffff; --ink:#17323a; --muted:#56707a; --line:#d4e4e2;
+  --mar:#0f7c8c; --mar-2:#0b5f6c; --sol:#e0a21b; --coral:#c4502a; --verde:#23874f; --morado:#7d4cc4; --azul:#2f62d9;
+  --chip-ok:#e3f4ea; --chip-ok-ink:#1d6b40; --chip-warn:#fdf1d8; --chip-warn-ink:#8a5a00; --chip-ia:#ece4fa; --chip-ia-ink:#5b3699;
+  --miskito-bg:#e6f4f5; --sombra:0 6px 18px rgba(15,60,70,.10);
+}
+[data-theme="dark"]{
+  --bg:#0f1b1f; --panel:#172a30; --ink:#e7f2f1; --muted:#9db6bb; --line:#2b444b;
+  --mar:#138b9c; --mar-2:#0f7381; --sol:#d9951a; --coral:#c4502a; --verde:#23874f; --morado:#7d4cc4; --azul:#2f62d9;
+  --chip-ok:#173f2a; --chip-ok-ink:#9fe0b8; --chip-warn:#41320f; --chip-warn-ink:#f3cf7e; --chip-ia:#2e2346; --chip-ia-ink:#cdb6f5;
+  --miskito-bg:#13353b; --sombra:0 6px 18px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:"Segoe UI",Arial,Helvetica,sans-serif;font-size:17px;line-height:1.5;min-height:100vh}
+button,input,textarea,select{font:inherit;color:inherit}
+.oculto{display:none!important}
+
+/* Barra fija */
+.barra{position:fixed;top:10px;right:12px;display:flex;gap:8px;z-index:50}
+.redondo{width:48px;height:48px;border-radius:50%;border:1px solid var(--line);background:var(--panel);box-shadow:var(--sombra);font-size:22px;cursor:pointer;display:grid;place-items:center}
+.redondo:focus-visible,.pill:focus-visible,.tarjeta-inicio:focus-visible{outline:3px solid var(--sol);outline-offset:2px}
+
+/* Botones píldora */
+.pill{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:10px 20px;border-radius:999px;border:none;cursor:pointer;font-weight:600;color:#fff;background:var(--mar);width:auto}
+.pill.sec{background:transparent;color:var(--ink);border:2px solid var(--line)}
+.pill.coral{background:var(--coral)} .pill.verde{background:var(--verde)} .pill.morado{background:var(--morado)} .pill.azul{background:var(--azul)}
+.pill.chico{min-height:44px;padding:8px 14px;font-size:15px}
+.pill:disabled{opacity:.55;cursor:not-allowed}
+.pill.grabando{background:#b3261e;animation:latido 1s infinite}
+@keyframes latido{50%{transform:scale(1.05)}}
+
+.contenedor{max-width:900px;margin:0 auto;padding:72px 16px 40px}
+.cabeza-seccion{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:14px}
+.cabeza-seccion h2{margin:0;font-size:1.5rem;flex:1 1 220px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:var(--sombra);margin-bottom:16px}
+
+/* Inicio */
+.portada{text-align:center;padding-top:20px}
+.olas{width:100%;max-width:520px;height:auto;margin:0 auto 6px;display:block}
+.portada h1{font-size:clamp(1.7rem,5vw,2.5rem);margin:6px 0 4px;color:var(--mar)}
+.portada .sub{color:var(--muted);margin:0 0 18px}
+.autoria{font-size:.92rem;color:var(--muted);margin:22px auto 0;max-width:620px}
+.rejilla{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-top:10px}
+.tarjeta-inicio{border:none;border-radius:20px;padding:22px 16px;color:#fff;cursor:pointer;text-align:left;min-height:120px;box-shadow:var(--sombra);display:flex;flex-direction:column;gap:6px}
+.tarjeta-inicio .ico{font-size:32px}
+.tarjeta-inicio b{font-size:1.2rem}
+.tarjeta-inicio span{font-size:.92rem;opacity:.95}
+.aviso{background:var(--chip-warn);color:var(--chip-warn-ink);border-radius:14px;padding:12px 16px;margin-top:18px;text-align:left;font-size:.95rem}
+
+/* Traducir */
+textarea{width:100%;min-height:110px;border-radius:14px;border:2px solid var(--line);background:var(--bg);padding:12px;font-size:1.1rem;resize:vertical}
+.fila{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px}
+.estado{color:var(--muted);font-size:.95rem;min-height:1.5em;margin-top:8px}
+.resultado{background:var(--miskito-bg);border-radius:18px;padding:18px;margin-top:6px}
+.resultado .etq{font-size:.85rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0}
+.miskito-grande{font-size:clamp(1.5rem,4.5vw,2.2rem);font-weight:700;color:var(--mar);margin:4px 0 10px;word-wrap:break-word}
+[data-theme="dark"] .miskito-grande{color:#7fd8e3}
+.retro{font-size:1rem;margin:4px 0}
+.chip{display:inline-block;border-radius:999px;padding:3px 12px;font-size:.82rem;font-weight:600}
+.chip.ok{background:var(--chip-ok);color:var(--chip-ok-ink)}
+.chip.warn{background:var(--chip-warn);color:var(--chip-warn-ink)}
+.chip.ia{background:var(--chip-ia);color:var(--chip-ia-ink)}
+.palabras{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.palabra{border:1px solid var(--line);border-radius:12px;padding:6px 10px;background:var(--panel);font-size:.95rem}
+.palabra b{color:var(--mar)}
+.palabra.falta{opacity:.6;border-style:dashed}
+
+/* Frases */
+.pestanas{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.pestanas .pill{background:transparent;color:var(--ink);border:2px solid var(--line)}
+.pestanas .pill.activa{background:var(--mar);color:#fff;border-color:var(--mar)}
+.lista-frases{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.frase{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:6px}
+.frase .es{font-size:1rem;color:var(--muted)}
+.frase .mi{font-size:1.35rem;font-weight:700;color:var(--mar)}
+[data-theme="dark"] .frase .mi{color:#7fd8e3}
+.frase .mi.vacia{font-weight:400;font-style:italic;font-size:1rem;color:var(--muted)}
+.frase .acciones{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.frase .acciones .pill{min-height:44px;padding:6px 12px;font-size:14px}
+.editor{display:flex;gap:6px;flex-wrap:wrap}
+.editor input{flex:1 1 150px;min-height:44px;border-radius:12px;border:2px solid var(--line);background:var(--bg);padding:6px 10px}
+
+/* Diccionario */
+.buscador{width:100%;min-height:50px;border-radius:999px;border:2px solid var(--line);background:var(--panel);padding:10px 18px;font-size:1.05rem}
+table{width:100%;border-collapse:collapse;margin-top:12px}
+th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line)}
+th{font-size:.85rem;text-transform:uppercase;color:var(--muted)}
+td.mi{font-weight:700;color:var(--mar)}
+[data-theme="dark"] td.mi{color:#7fd8e3}
+td .pill{min-height:44px;padding:4px 12px}
+
+/* Imágenes (tablero de comunicación) */
+.grupo-img{margin:18px 0 8px;font-size:1.15rem}
+.tablero{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+.picto{background:var(--panel);border:1px solid var(--line);border-radius:20px;overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--sombra)}
+.picto .dibujo{border:none;padding:10px;cursor:pointer;background:#fdf6e9;display:block;width:100%}
+[data-theme="dark"] .picto .dibujo{background:#f3ead8}
+.picto .dibujo svg{width:100%;height:auto;max-height:150px;display:block}
+.picto .info{padding:10px 14px 14px;display:flex;flex-direction:column;gap:4px}
+.picto .mi{font-size:1.6rem;font-weight:800;color:var(--mar);line-height:1.2}
+[data-theme="dark"] .picto .mi{color:#7fd8e3}
+.picto .mi.vacia{font-size:1rem;font-weight:400;font-style:italic;color:var(--muted)}
+.picto .pron{font-size:.95rem;color:var(--ink)}
+.picto .pron b{letter-spacing:.04em}
+.picto .es{font-size:1.02rem;font-weight:600}
+.picto .clave{font-size:.85rem;color:var(--muted)}
+.picto .acciones{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.picto .acciones .pill{min-height:44px;padding:6px 12px;font-size:14px}
+
+/* Documentos */
+.doc-archivo{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px;font-weight:600}
+.doc-archivo img{max-width:min(100%,320px);max-height:260px;border-radius:12px;border:1px solid var(--line)}
+.parrafo{border-top:1px solid var(--line);padding:12px 0;display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:start}
+.parrafo:first-child{border-top:none}
+.parrafo .es{color:var(--muted);font-size:.95rem;grid-column:1}
+.parrafo .mi{color:var(--mar);font-weight:700;font-size:1.2rem;grid-column:1}
+[data-theme="dark"] .parrafo .mi{color:#7fd8e3}
+.parrafo .botones-parrafo{grid-column:2;grid-row:1 / span 2;display:flex;flex-direction:column;gap:6px}
+.conjugar table td,.conjugar table th{text-align:center}
+.conjugar td.verbo{font-weight:700;color:var(--mar);font-size:1.1rem}
+[data-theme="dark"] .conjugar td.verbo{color:#7fd8e3}
+.conjugar select{min-height:48px;border-radius:12px;border:2px solid var(--line);background:var(--bg);padding:6px 12px;font-size:1rem}
+
+/* Ajustes */
+label{display:block;font-weight:600;margin:10px 0 4px}
+.campo{width:100%;min-height:48px;border-radius:12px;border:2px solid var(--line);background:var(--bg);padding:8px 12px}
+.fuentes li{margin-bottom:8px}
+.fuentes a{color:var(--mar)}
+[data-theme="dark"] .fuentes a{color:#7fd8e3}
+.nota{font-size:.92rem;color:var(--muted)}
+
+/* Impresión */
+#zonaImpresion{display:none}
+@media print{
+  body{background:#fff;color:#000;font-family:Arial,Helvetica,sans-serif;font-size:12pt}
+  body > *:not(#zonaImpresion){display:none!important}
+  #zonaImpresion{display:block!important;font-family:Arial,Helvetica,sans-serif;font-size:12pt;color:#000}
+  #zonaImpresion h1{font-size:16pt;margin:0 0 6pt}
+  #zonaImpresion p{margin:0 0 6pt}
+  #zonaImpresion .linea{border-bottom:1px solid #999;padding:4pt 0}
+}
+@media (max-width:520px){
+  body{font-size:16px}
+  .contenedor{padding-top:68px}
+  .barra{top:8px;right:8px;gap:6px}
+  .redondo{width:44px;height:44px;font-size:20px}
+}
+</style>
+</head>
+<body>
+
+<div class="barra" role="toolbar" aria-label="Controles">
+  <button class="redondo" id="btnAudio" title="Activar o silenciar el audio" aria-label="Audio activado">🔊</button>
+  <button class="redondo" id="btnTema" title="Cambiar a modo oscuro" aria-label="Cambiar a modo oscuro">🌙</button>
+</div>
+
+<!-- ============ INICIO ============ -->
+<main id="inicio" class="contenedor seccion portada">
+  <svg class="olas" viewBox="0 0 520 120" aria-hidden="true">
+    <circle cx="420" cy="42" r="26" fill="#e0a21b"/>
+    <path d="M0 78 Q65 58 130 78 T260 78 T390 78 T520 78 V120 H0Z" fill="#0f7c8c"/>
+    <path d="M0 92 Q65 74 130 92 T260 92 T390 92 T520 92 V120 H0Z" fill="#0b5f6c"/>
+    <path d="M150 74 L230 74 L218 86 L162 86 Z" fill="#c4502a"/>
+    <line x1="190" y1="74" x2="190" y2="40" stroke="#56707a" stroke-width="3"/>
+    <path d="M192 42 L222 68 L192 68 Z" fill="#fff" stroke="#56707a" stroke-width="1.5"/>
+  </svg>
+  <h1>Traductor Miskito sin IA</h1>
+  <p class="sub">Gratis y sin internet · Gramática y vocabulario del material bilingüe del MEP</p>
+
+  <div class="rejilla">
+    <button class="tarjeta-inicio" style="background:#0f7c8c" data-ir="traducir"><span class="ico">🎙️</span><b>Traducir</b><span>Habla o escribe en español y escucha la traducción.</span></button>
+    <button class="tarjeta-inicio" style="background:#c4502a" data-ir="frases"><span class="ico">💬</span><b>Frases</b><span>Frases de todos los días, con voz grabada.</span></button>
+    <button class="tarjeta-inicio" style="background:#23874f" data-ir="diccionario"><span class="ico">📖</span><b>Diccionario</b><span>Busca palabras en español o en miskito.</span></button>
+    <button class="tarjeta-inicio" style="background:#b45309" data-ir="imagenes"><span class="ico">🖼️</span><b>Imágenes</b><span>Dibujos de la vida diaria con su frase en miskito.</span></button>
+    <button class="tarjeta-inicio" style="background:#2f62d9" data-ir="documentos"><span class="ico">📄</span><b>Documentos</b><span>Traduce un archivo de Word o de texto.</span></button>
+    <button class="tarjeta-inicio" style="background:#7d4cc4" data-ir="ajustes"><span class="ico">⚙️</span><b>Cómo funciona</b><span>Las reglas del traductor y de dónde vienen las palabras.</span></button>
+  </div>
+
+  <div class="aviso">⚠️ <b>Versión de prueba.</b> Las traducciones deben revisarlas una persona que hable miskito. Las traducciones <i>por reglas</i> son aproximadas: funcionan bien con frases sencillas.</div>
+
+  <p class="autoria">Elaborado por: Alberto Jiménez Ruiz — Asesor Regional de Matemática · DAP-DRE-Cartago 2026</p>
+</main>
+
+<!-- ============ TRADUCIR ============ -->
+<main id="traducir" class="contenedor seccion oculto">
+  <div class="cabeza-seccion">
+    <button class="pill sec" data-ir="inicio">🏠 Inicio</button>
+    <h2>🎙️ Traducir</h2>
+    <button class="pill sec chico" data-instr="traducir">🔊 Escuchar instrucciones</button>
+  </div>
+
+  <div class="panel">
+    <label for="txtEs">Texto en español</label>
+    <textarea id="txtEs" placeholder="Toca «Hablar» y di una frase, o escríbela aquí. Ejemplo: Mañana voy a la escuela"></textarea>
+    <div class="fila">
+      <button class="pill coral" id="btnHablar">🎙️ Hablar</button>
+      <button class="pill" id="btnTraducir">➜ Traducir al miskito</button>
+      <button class="pill sec chico" id="btnLimpiar">Borrar</button>
+    </div>
+    <div class="estado" id="estado" aria-live="polite"></div>
+  </div>
+
+  <div class="panel oculto" id="panelResultado">
+    <div class="resultado">
+      <p class="etq">Miskito</p>
+      <div class="miskito-grande" id="resMiskito"></div>
+      <div class="fila" style="margin-top:0">
+        <button class="pill" id="btnEscucharMi">🔊 Miskito</button>
+        <button class="pill azul" id="btnEscucharEs">🗣️ Español</button>
+        <span id="resChip"></span>
+      </div>
+      <p class="retro" id="resRetro"></p>
+      <p class="nota" id="resNota"></p>
+      <div class="palabras" id="resPalabras"></div>
+    </div>
+    <div class="fila">
+      <button class="pill sec chico" id="btnGuardarFrase">⭐ Guardar en «Mis frases»</button>
+      <button class="pill sec chico" data-imprimir="traducir">🖨️ Imprimir</button>
+      <button class="pill sec chico" data-pdf="traducir">⬇️ Descargar PDF</button>
+    </div>
+  </div>
+</main>
+
+<!-- ============ FRASES ============ -->
+<main id="frases" class="contenedor seccion oculto">
+  <div class="cabeza-seccion">
+    <button class="pill sec" data-ir="inicio">🏠 Inicio</button>
+    <h2>💬 Frases</h2>
+    <button class="pill sec chico" data-instr="frases">🔊 Escuchar instrucciones</button>
+  </div>
+  <div class="pestanas" id="pestanasFrases"></div>
+  <p class="nota" id="notaCategoria"></p>
+  <div class="lista-frases" id="listaFrases"></div>
+  <div class="fila">
+    <button class="pill sec chico" data-imprimir="frases">🖨️ Imprimir</button>
+    <button class="pill sec chico" data-pdf="frases">⬇️ Descargar PDF</button>
+  </div>
+</main>
+
+<!-- ============ DICCIONARIO ============ -->
+<main id="diccionario" class="contenedor seccion oculto">
+  <div class="cabeza-seccion">
+    <button class="pill sec" data-ir="inicio">🏠 Inicio</button>
+    <h2>📖 Diccionario</h2>
+  </div>
+  <input class="buscador" id="buscar" type="search" placeholder="Buscar en español o en miskito…" aria-label="Buscar palabra">
+  <div class="panel" style="margin-top:12px;overflow-x:auto">
+    <table>
+      <thead><tr><th>Español</th><th>Miskito</th><th></th></tr></thead>
+      <tbody id="tablaDic"></tbody>
+    </table>
+  </div>
+  <div class="panel conjugar">
+    <h3 style="margin-top:0">🏃 Conjugar un verbo</h3>
+    <p class="nota">Regla del material MEP: la raíz es el verbo sin «aia» (piaia → <b>pi</b>) y se le agrega la terminación según la persona y el tiempo.</p>
+    <label for="selVerbo">Verbo</label>
+    <select id="selVerbo"></select>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Persona</th><th>Pasado</th><th>Presente</th><th>Futuro</th></tr></thead>
+        <tbody id="tablaConj"></tbody>
+      </table>
+    </div>
+    <p class="nota">Toca una forma para escucharla. Es la regla general: algunos verbos pueden tener formas especiales.</p>
+  </div>
+  <div class="fila">
+    <button class="pill sec chico" data-imprimir="diccionario">🖨️ Imprimir</button>
+    <button class="pill sec chico" data-pdf="diccionario">⬇️ Descargar PDF</button>
+  </div>
+</main>
+
+<!-- ============ IMÁGENES ============ -->
+<main id="imagenes" class="contenedor seccion oculto">
+  <div class="cabeza-seccion">
+    <button class="pill sec" data-ir="inicio">🏠 Inicio</button>
+    <h2>🖼️ Imágenes</h2>
+    <button class="pill sec chico" data-instr="imagenes">🔊 Escuchar instrucciones</button>
+  </div>
+  <p class="nota">Toca el dibujo para escucharlo en miskito. La <b>sílaba fuerte</b> va en mayúsculas. Una persona que hable miskito puede <b>corregir</b> la palabra por la frase completa y <b>grabar</b> su voz.</p>
+  <div id="tablero"></div>
+  <div class="fila">
+    <button class="pill sec chico" data-imprimir="imagenes">🖨️ Imprimir</button>
+    <button class="pill sec chico" data-pdf="imagenes">⬇️ Descargar PDF</button>
+  </div>
+</main>
+
+<!-- ============ DOCUMENTOS ============ -->
+<main id="documentos" class="contenedor seccion oculto">
+  <div class="cabeza-seccion">
+    <button class="pill sec" data-ir="inicio">🏠 Inicio</button>
+    <h2>📄 Documentos</h2>
+    <button class="pill sec chico" data-instr="documentos">🔊 Escuchar instrucciones</button>
+  </div>
+
+  <div class="panel">
+    <div class="fila" style="margin-top:0">
+      <button class="pill azul" id="btnSubir">📁 Subir documento</button>
+      <input type="file" id="archivoDoc" class="oculto" accept=".txt,.docx,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+    </div>
+    <p class="nota">Se puede subir un archivo de Word (.docx) o de texto (.txt). Esta versión no lee fotos ni PDF, porque para eso se necesita inteligencia artificial.</p>
+
+    <div id="docVista" class="oculto">
+      <div class="doc-archivo"><img id="docImg" alt="Vista previa de la foto" class="oculto"><span id="docNombre"></span></div>
+      <div id="docTextoCaja" class="oculto">
+        <label for="docTexto">Texto encontrado (se puede corregir antes de traducir)</label>
+        <textarea id="docTexto" style="min-height:160px"></textarea>
+      </div>
+      <div class="fila">
+        <button class="pill" id="btnTraducirDoc">➜ Traducir documento</button>
+        <button class="pill sec chico" id="btnQuitarDoc">Quitar</button>
+      </div>
+    </div>
+    <div class="estado" id="estadoDoc" aria-live="polite"></div>
+  </div>
+
+  <div class="panel oculto" id="panelDoc">
+    <div class="fila" style="margin-top:0">
+      <button class="pill" id="btnEscucharDoc">🔊 Escuchar todo en miskito</button>
+      <span id="docChip"></span>
+    </div>
+    <p class="nota" id="docNota"></p>
+    <div id="docParrafos"></div>
+    <div class="fila">
+      <button class="pill sec chico" data-imprimir="documentos">🖨️ Imprimir</button>
+      <button class="pill sec chico" data-pdf="documentos">⬇️ Descargar PDF</button>
+    </div>
+  </div>
+</main>
+
+<!-- ============ AJUSTES ============ -->
+<main id="ajustes" class="contenedor seccion oculto">
+  <div class="cabeza-seccion">
+    <button class="pill sec" data-ir="inicio">🏠 Inicio</button>
+    <h2>⚙️ Cómo funciona</h2>
+  </div>
+
+  <div class="panel">
+    <h3 style="margin-top:0">Cómo traduce sin inteligencia artificial</h3>
+    <p>Todo funciona dentro de esta página: no envía nada a internet y no tiene costo. Para cada frase sigue estos pasos:</p>
+    <ol>
+      <li><b>Frase completa:</b> si la frase está en el material del MEP, usa esa traducción.</li>
+      <li><b>Plantillas</b> tomadas de ejemplos del material: «me llamo…» (<i>Yang nini ba…</i>), «tengo … años» (<i>Yang … mani brisna</i>), «me gusta…» (<i>… laiksna</i>), «me duele…» (<i>… klauhan</i>).</li>
+      <li><b>Gramática del miskito:</b> el verbo va al final; <i>sa / sna / sma</i> significa «es, está»; <i>ba</i> marca al sujeto; <i>nani</i> forma el plural; <i>ra</i> = a, en; <i>wal</i> = con; <i>apia</i> = no; y las preposiciones de lugar (<i>purara, munhtara, bilara</i>…).</li>
+      <li><b>Conjugación</b> en pasado, presente y futuro con la regla del material (piri, pisna, piamna).</li>
+      <li><b>Diccionario:</b> busca las demás palabras entre unas 400 del material. Lo que no encuentra queda entre [corchetes].</li>
+    </ol>
+    <p class="nota">Funciona mejor con frases sencillas de la escuela y la casa. No adapta refranes ni ideas complejas: para eso existe la versión con inteligencia artificial.</p>
+  </div>
+
+  <div class="panel">
+    <h3 style="margin-top:0">Sobre la voz en miskito</h3>
+    <p>No existe una voz de computadora en miskito. La app hace esto:</p>
+    <ol>
+      <li>Si la frase tiene una <b>grabación</b> hecha por una persona miskita (botón 🎙️ en «Frases»), reproduce esa grabación.</li>
+      <li>Si no, lee el texto miskito con una <b>voz en español</b>. Se entiende, pero con acento: es una pronunciación aproximada.</li>
+    </ol>
+    <p class="nota">Las grabaciones y correcciones se guardan en este equipo y se comparten con la versión con IA si se abre desde el mismo sitio.</p>
+    <div class="fila">
+      <button class="pill sec chico" id="btnExportar">⬇️ Exportar correcciones</button>
+      <button class="pill sec chico" id="btnImportar">⬆️ Importar correcciones</button>
+      <input type="file" id="archivoImportar" accept="application/json" class="oculto">
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3 style="margin-top:0">Fuentes del vocabulario</h3>
+    <p>El miskito es la lengua indígena más hablada de Nicaragua (Costa Caribe Norte, río Coco / Wangki, Bilwi). Su ortografía usa tres vocales básicas (<b>a, i, u</b>) y vocales largas (<b>â, î, û</b>), y todavía varía entre autores.</p>
+    <ul class="fuentes">
+      <li><b>Ministerio de Educación Pública de Costa Rica.</b> <i>Material de apoyo para docentes que atienden población miskita</i>, elaborado por Lizeth Pictan Chacón, docente de lengua miskito (Dirección Regional de Educación San José Oeste, Supervisión Educativa Circuito 02). Es la fuente principal de la app: de aquí salen los saludos, la cortesía, las normas de clase, la higiene y la salud, las emociones, la familia, el cuerpo, la ropa, los colores, los animales, la naturaleza, los días, las formas, los adjetivos, las preposiciones, los verbos y la regla para conjugarlos.</li>
+      <li><b>Heath, G. R. y Marx, W. G.</b> <i>Diccionario Miskito-Español, Español-Miskito</i> (1961; 3.ª ed. 1983). El diccionario bilingüe de referencia. <a href="https://glottolog.org/resource/reference/id/59872" target="_blank" rel="noopener">Ficha en Glottolog</a></li>
+      <li><b>Vaughan Warman, A.</b> <i>Diccionario trilingüe miskito-español-inglés</i>, Managua (1959). Hecho por un hablante nativo nicaragüense.</li>
+      <li><b>Melgara, D.</b> Diccionario español-miskito / miskito-español, reseñado en la revista <i>WANI</i> (CIDCA-UCA, Nicaragua). <a href="https://camjol.info/index.php/WANI/article/view/881" target="_blank" rel="noopener">Artículo en WANI</a></li>
+      <li><b>Salamanca, D.</b> (CIDCA / BICU). Estudios sobre los verbos miskitos. <a href="https://camjol.info/index.php/WANI/article/view/19469" target="_blank" rel="noopener">«Verbos miskitos», WANI</a></li>
+      <li><b>Wikibooks:</b> curso «Miskitu Aisas!» y su léxico preliminar. <a href="https://en.wikibooks.org/wiki/Miskito/Lexicon" target="_blank" rel="noopener">Léxico</a></li>
+      <li><b>Wikipedia:</b> «Miskito grammar» (saludos, pronombres, números y verbos). <a href="https://en.wikipedia.org/wiki/Miskito_grammar" target="_blank" rel="noopener">Artículo</a></li>
+      <li><b>AILLA</b> (Universidad de Texas): colección de audio y narraciones en miskito de N. Bermúdez y W. L. Waldan Peter.</li>
+    </ul>
+    <p class="nota">Etiquetas: <span class="chip ok">Material MEP</span> = del material de apoyo bilingüe del MEP · <span class="chip ok">Fuente</span> = tomada de las otras fuentes · <span class="chip warn">Por verificar</span> = propuesta, falta revisión de un hablante · <span class="chip ia">IA aproximada</span> = traducción automática · <span class="chip ok">Revisada</span> = corregida en este equipo.</p>
+  </div>
+</main>
+
+<div id="zonaImpresion"></div>
+
+<script>
+(function(){
+'use strict';
+
+/* ---------- Almacenamiento seguro ---------- */
+function leer(k, def){ try{ var v = localStorage.getItem(k); return v === null ? def : JSON.parse(v); }catch(e){ return def; } }
+function guardar(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+
+/* ---------- Datos: vocabulario ---------- */
+// [español, miskito, estado]  estado: 'mep' Material de apoyo bilingüe del MEP (prioridad),
+// 'f' otras fuentes (Wikipedia, Wikibooks), 'v' por verificar
+var CATEGORIAS = [
+  {id:'saludos', nombre:'Saludos y presentación', ico:'👋', frases:[
+    ['Hola','Naksa','mep'],
+    ['¿Cómo estás?','Nahkisma?','mep'],
+    ['¿Cómo te sientes?','Nahki damra walisma?','mep'],
+    ['Buenos días','Titan yamni','mep'],
+    ['Buenas tardes (al mediodía)','Dinar yamni','mep'],
+    ['Buenas tardes','Tutni yamni','mep'],
+    ['Buenas noches','Tihmia yamni','mep'],
+    ['¿Cómo te llamas?','Ninam dia?','mep'],
+    ['Yo me llamo…','Yang nini ba…','mep'],
+    ['¿Cuántos años tienes?','An mani brisma?','mep'],
+    ['Yo tengo … años','Yang … mani brisna','mep'],
+    ['¡Bienvenidos!','Yamni balram','mep'],
+    ['Es un placer conocerte','Uba yamni mai kakaira takri ba','mep'],
+    ['Pasa, estás en tu casa','Dims, wamtlarasma','mep'],
+    ['¿Cómo te puedo ayudar?','Nahki hilp mai munaia sipsna?','mep'],
+    ['¿De dónde eres?','Man ani wina?','f'],
+    ['Sí','Au','mep'],
+    ['No','Apia','mep']
+  ]},
+  {id:'cortesia', nombre:'Cortesía y despedida', ico:'💐', frases:[
+    ['Por favor','Du pali / plis','mep'],
+    ['Gracias','Tingki','mep'],
+    ['Muchas gracias','Tingki pali','mep'],
+    ['De nada','Trabil apia / bahki','mep'],
+    ['Un placer','Yamni pali','mep'],
+    ['Perdón / disculpe','Padin aimuns','mep'],
+    ['Con permiso','Iskius','mep'],
+    ['Adiós / hasta luego','Aisabi','mep'],
+    ['Que tengas un buen día','Yua yamni bris','mep'],
+    ['Fue un gusto verte','Uba yamni mai kaikisna','mep'],
+    ['Nos vemos pronto','Kli wal praubia','mep']
+  ]},
+  {id:'clase', nombre:'Normas de clase', ico:'✏️', frases:[
+    ['Levanta la mano para hablar o participar','Mihtam bukaia sturi aisaia wantsma pyuara','mep'],
+    ['Escucha con atención cuando otras personas hablan','Sap walaia upla kum sturi aisi pyuara','mep'],
+    ['Usa palabras amables como por favor, gracias y permiso','Sturi yamni nani yus muns aisisma pyuara: plis, tingki an iskius','mep'],
+    ['Respeta a tus compañeros y a tu docente','Rispik munaia pamnika an maistrukam ra','mep'],
+    ['Mantén tu espacio limpio y ordenado','Iwisma pliska ba wapni an klin briaia','mep'],
+    ['Camina dentro del aula; no corras','Klas bilara wapi taukaia, palaia apia','mep'],
+    ['Puntualidad y asistencia','Kul dakbaia apia an sun balaia','mep'],
+    ['Sigue las instrucciones del docente','Maistrukam dia mai wiba bila walaia','mep'],
+    ['Espera tu turno para hablar','Bila kaiks man taim aisaia pyuara','mep'],
+    ['Permanece sentado cuando sea necesario','Pliskam ar sir kam ra iwi bas','mep'],
+    ['Deposita la basura en su lugar','Dipasta ba pliskara mangks','mep'],
+    ['Vamos','Kaisa','mep'],
+    ['Sentarse','Iwaia','mep'],
+    ['Ponerse de pie','Buaia','mep'],
+    ['Salir','Takaia','mep'],
+    ['Escribir','Ulbaia','mep'],
+    ['Hablar','Aisaia','mep'],
+    ['Leer','Aisi kaikaia','mep'],
+    ['Colorear','Pint munaia','mep'],
+    ['Dibujar','Lilka paskaia','mep'],
+    ['Ya terminó','Danh takram','mep'],
+    ['Venga','Bal','mep'],
+    ['Despacio','Tawa','mep'],
+    ['Rápido','Isti','mep'],
+    ['Silencio','Sap takaia','mep'],
+    ['¿Te gusta tu escuela?','Kul kam watla na laiksma?','mep'],
+    ['¿Te gusta tu salón de clase?','Klas mai smalki na pliska laiksma?','mep'],
+    ['Sí me gusta','Au laiksna','mep'],
+    ['No, no me gusta','Apia, laik apia','mep'],
+    ['Voy a la biblioteca','Wauhtaya aisi kaikaia pliska ra auna','mep'],
+    ['Voy a la sala de cómputo','Kumputadura lan takaia pliskara auna','mep'],
+    ['Voy a la oficina del director','Ta brabrira pliskara auna','mep'],
+    ['Voy al comedor','Plun piaia pliska ra auna','mep'],
+    ['Mi escuela es bonita','Skulki watla na painkira sa','mep']
+  ]},
+  {id:'escuela', nombre:'Útiles y escuela', ico:'🏫', frases:[
+    ['Cuaderno','Ulbaia wauhtaika','mep'],
+    ['Lápiz','Pinsil','mep'],
+    ['Libro','Buk','mep'],
+    ['Mochila','Surun ar muchila','mep'],
+    ['Borrador','Dikaika','mep'],
+    ['Sacapuntas / tajador','Pinsil ta daukaika','mep'],
+    ['Lapicero','Ink pinsil','mep'],
+    ['Lápices de colores','Pint munaia pinsilka','mep'],
+    ['Regla','Lain nani paskaika','mep'],
+    ['Cartuchera','Pinsil nani surun ka','mep'],
+    ['Escuela','Skul watla','mep'],
+    ['Aula / salón de clases','Smalkaia pliska','mep'],
+    ['Biblioteca','Wauhtaya aisi kaikaia pliska','mep'],
+    ['Sala de cómputo','Kumputadura lan takaia pliska','mep'],
+    ['Oficina del director','Ta brabrira pliska','mep'],
+    ['Sala de profesores','Smasmalkra nani takaski pliska','mep'],
+    ['Cancha / gimnasio','Wan wîna trin munaia pliska','mep'],
+    ['Comedor','Plun piaia pliska','mep'],
+    ['Baño / servicios','Tailit ar klasit','mep'],
+    ['Docente','Smasmalkra','mep'],
+    ['Mesa','Tibil','f'],
+    ['Silla','Iwaika','f'],
+    ['Puerta','Dur','f'],
+    ['Ventana','Windar','f'],
+    ['Aprender','Lan takaia','f'],
+    ['Enseñar','Lan daukaia','f'],
+    ['Ayuda','Hilp','f']
+  ]},
+  {id:'salud', nombre:'Higiene y salud', ico:'🧼', frases:[
+    ['Lavarse las manos','Mihtam sikbaia','mep'],
+    ['Cepillarse los dientes','Nampa kiauhbaia','mep'],
+    ['Bañarse todos los días','Yu bani aihtabaia','mep'],
+    ['Peinarse','Tamwa aubaia','mep'],
+    ['Cortarse las uñas','Amsmala klakaia','mep'],
+    ['Usar el uniforme limpio','Kul kualka klin dimaia','mep'],
+    ['Limpiarse los zapatos','Suskám klin briaia','mep'],
+    ['Fiebre','Rih ar rihka','mep'],
+    ['¿Tienes fiebre?','Rih brisma?','mep'],
+    ['Tos','Siahka','mep'],
+    ['¿Tienes tos?','Siahka brisma?','mep'],
+    ['Dolor','Latwan','mep'],
+    ['¿Te golpeaste?','Latwan briram?','mep'],
+    ['Dolor de cabeza','Lal klauhan','mep'],
+    ['¿Te duele la cabeza?','Lamla klahuisa?','mep'],
+    ['Diarrea','Biara sakan','mep'],
+    ['¿Tienes diarrea?','Biamra sakisa?','mep'],
+    ['Infección','Impiksan','mep'],
+    ['¿Tienes infección?','Impiksan brisma?','mep'],
+    ['Úlcera','Kluhka sukuan','mep'],
+    ['Enfermedad','Siknis','mep'],
+    ['¿Estás enfermo?','Siknis sma?','mep'],
+    ['Medicamentos','Sika','mep'],
+    ['¿Tomas medicamentos?','Sika disma?','mep'],
+    ['Pastillas','Pils','mep'],
+    ['Clínica','Klinik','mep'],
+    ['¿Fuiste a la clínica?','Klinik ra waram?','mep'],
+    ['Doctor','Daktar','mep'],
+    ['¿Fuiste al doctor?','Daktar ra waram?','mep'],
+    ['Enfermera','Nurs','mep'],
+    ['Dolor de muela','Napa klahuan','mep'],
+    ['¿Tienes dolor de muela?','Nampa klahuisa?','mep'],
+    ['Hospital','Haspital','mep']
+  ]},
+  {id:'emociones', nombre:'Emociones', ico:'💭', frases:[
+    ['Feliz','Lilia','mep'],
+    ['Triste','Sâri','mep'],
+    ['Enojado','Praut','mep'],
+    ['Sorprendido','Sirang iwan','mep'],
+    ['Miedo','Sibrin','mep'],
+    ['Preocupado','Diara luki','mep'],
+    ['Decepcionado','Kupia yamni apia','mep'],
+    ['Calmado / tranquilo','Sâp takan','mep'],
+    ['Frustrado','Mapara alki takaski ba','mep'],
+    ['Luisa está feliz','Luisa lilia sa','mep']
+  ]},
+  {id:'familia', nombre:'Familia y personas', ico:'👪', frases:[
+    ['Papá','Aisa','mep'],
+    ['Mamá','Yapti','mep'],
+    ['Hermano / hermana (mismo sexo)','Muihka','mep'],
+    ['Hermano / hermana (sexo contrario)','Laikra','mep'],
+    ['Bebé','Bibi','mep'],
+    ['Abuela','Kuka','mep'],
+    ['Abuelo','Dama','mep'],
+    ['Tía','Anti','mep'],
+    ['Tío','Tahti','mep'],
+    ['Tía paterna','Taihka','mep'],
+    ['Tío paterno','Rapia','mep'],
+    ['Yo','Yang','mep'],
+    ['Usted','Man','mep'],
+    ['Él / ella','Witin','mep'],
+    ['Nosotros / nosotras','Yang nani','mep'],
+    ['Ustedes','Man nani','mep'],
+    ['Ellos','Witin nani','mep'],
+    ['Niño / niña','Tuktan','f'],
+    ['Mujer','Mairin','f'],
+    ['Persona / gente','Upla','f']
+  ]},
+  {id:'cuerpo', nombre:'Cuerpo', ico:'🧍', frases:[
+    ['Cabeza','Lal','mep'],
+    ['Ojos','Nakra','mep'],
+    ['Oreja','Kiama','mep'],
+    ['Nariz','Kakma','mep'],
+    ['Boca','Bila','mep'],
+    ['Dientes','Napa','mep'],
+    ['Lengua','Tuisa','mep'],
+    ['Mejilla','Mawan buhnka','mep'],
+    ['Frente','Lal kamhka','mep'],
+    ['Mentón','Tauhka','mep'],
+    ['Barbilla','Krusa','mep'],
+    ['Cuello','Nana','mep'],
+    ['Pecho','Lamadusa','mep'],
+    ['Estómago','Biara','mep'],
+    ['Espalda','Nina dusa','mep'],
+    ['Brazo','Klahkla','mep'],
+    ['Mano','Mihta','mep'],
+    ['Dedo','Mihta kulkaika','mep'],
+    ['Pierna','Kuhma','mep'],
+    ['Pie','Mina','mep'],
+    ['Dedo del pie','Mina kulkaika','mep'],
+    ['Cerebro','Lal mabiarka','mep'],
+    ['Corazón','Kupia','mep'],
+    ['Pulmón','Pusa','mep'],
+    ['Hígado','Âuya','mep'],
+    ['Riñón','Kiskamka','mep'],
+    ['Vejiga','Iska watla','mep'],
+    ['Pelo','Tawa','f']
+  ]},
+  {id:'ropa', nombre:'Ropa', ico:'👕', frases:[
+    ['Camisa','Prak pura','mep'],
+    ['Blusa','Mairin praka pura','mep'],
+    ['Suéter','Prak pura twakni','mep'],
+    ['Camisa de manga larga','Prak klahkla yari','mep'],
+    ['Pantalón','Traus yari','mep'],
+    ['Pantalón de tela','Traus yari mina swapni','mep'],
+    ['Pantalón de mezclilla','Traus yari mina blujin','mep'],
+    ['Falda','Prak mahta','mep'],
+    ['Vestido','Prak ul','mep'],
+    ['Pantalón corto','Traus kuhku','mep'],
+    ['Calcetines / medias','Saks','mep'],
+    ['Pijama','Yapaia praka','mep'],
+    ['Gorra','Kiaput','mep'],
+    ['Pañuelo','Ansar','mep']
+  ]},
+  {id:'colores', nombre:'Colores', ico:'🎨', frases:[
+    ['Rojo','Pauni','mep'],
+    ['Amarillo','Lalahni','mep'],
+    ['Verde','Sangni','mep'],
+    ['Marrón / café','Puputni','mep'],
+    ['Blanco','Pihni','mep'],
+    ['Negro','Siksa','mep'],
+    ['Azul','Blu','mep'],
+    ['Rosado','Paura','mep'],
+    ['Gris','Pihitni','mep'],
+    ['Morado','Balianhta','mep'],
+    ['Anaranjado','Andris mapla','mep'],
+    ['La planta es verde','Dusa ba sangni sa','mep']
+  ]},
+  {id:'casa', nombre:'Casa y comida', ico:'🏠', frases:[
+    ['Casa','Utla','f'],
+    ['Cama','Krikri','f'],
+    ['Hamaca','Silmika','f'],
+    ['Agua','Lî','mep'],
+    ['Comida','Plun','f'],
+    ['Carne','Wina','f'],
+    ['Pan','Brid','f'],
+    ['Huevo','Mahbra','f'],
+    ['Fruta','Mâ','f'],
+    ['Plátano','Platu','f'],
+    ['Mango','Mangu','f'],
+    ['Aguacate','Sikia','f'],
+    ['Papaya','Twas','f'],
+    ['Pescado','Inska','f'],
+    ['Dulce','Damni','mep'],
+    ['Amargo','Tahpla','mep'],
+    ['Ácido','Suahni','mep'],
+    ['Salado','Sal','mep'],
+    ['La fruta es dulce','Dusa mâ ba damni sa','mep'],
+    ['Comemos cosas calientes','Plun ba lapta pisa','mep'],
+    ['Comer','Piaia','mep'],
+    ['Beber','Diaia','f'],
+    ['Dormir','Yapaia','mep'],
+    ['Dinero','Lalahka','f']
+  ]},
+  {id:'animales', nombre:'Animales', ico:'🐢', frases:[
+    ['Animal','Daiwan','mep'],
+    ['Cerdo / chancho','Kuirku','mep'],
+    ['Gallina','Kalila','mep'],
+    ['Gallo','Kalila waihka','mep'],
+    ['Perro','Yul','mep'],
+    ['Gato','Pûs','mep'],
+    ['Caballo','Âras','mep'],
+    ['Vaca','Bip','mep'],
+    ['Toro','Bip waihka','mep'],
+    ['Camello','Kiamil','mep'],
+    ['Cabra','Guts','mep'],
+    ['Burro','Biriku','mep'],
+    ['Tigre','Limi','mep'],
+    ['León','Layan','mep'],
+    ['Venado','Sula','mep'],
+    ['Oveja / cordero','Ship','mep'],
+    ['Lobo','Yulwail','mep'],
+    ['Zorro','Sikiski','mep'],
+    ['Nutria','Mamu','mep'],
+    ['Chancho de monte','Buksa','mep'],
+    ['Danto','Tilba','mep'],
+    ['Mono','Urus / ruskika','mep'],
+    ['Oso perezoso','Siwaiku','mep'],
+    ['Mono congo','Gung gung','mep'],
+    ['Ratón','Matis','mep'],
+    ['Águila','Yakal','mep'],
+    ['Zopilote','Usus','mep'],
+    ['Loro','Rahwa','mep'],
+    ['Oropéndola','Tulu','mep'],
+    ['Papagayo','Apu','mep'],
+    ['Búho','Iskri','mep'],
+    ['Pavo','Kusu','mep'],
+    ['Tortuga de mar','Lih','f'],
+    ['Serpiente','Pyuta','f'],
+    ['Mariposa','Dildil','f'],
+    ['Pescado','Inska','f']
+  ]},
+  {id:'naturaleza', nombre:'Naturaleza y clima', ico:'🌳', frases:[
+    ['Tierra','Tasba','mep'],
+    ['Aire','Pâsa','mep'],
+    ['Fuego','Pauta','mep'],
+    ['Sol','Yu lapta','mep'],
+    ['Lluvia','Li auhuan / pura laya','mep'],
+    ['Arcoíris','Kumadura','mep'],
+    ['Nublado','Klaut siksa','mep'],
+    ['Trueno','Alwani','mep'],
+    ['Relámpagos','Imyula','mep'],
+    ['Árbol','Dus','mep'],
+    ['Flor','Tangni','mep'],
+    ['Hoja','Dus wahia','mep'],
+    ['Rama','Tnawa','mep'],
+    ['Raíz','Wakia','mep'],
+    ['Pasto','Twi','mep'],
+    ['Río','Tingni','mep'],
+    ['Mar','Kabu','mep'],
+    ['Piedra','Walpa','mep'],
+    ['Arena','Auhya','mep'],
+    ['Montaña','Unta','mep'],
+    ['Cerro','Il','mep'],
+    ['Volcán','Pauta ilka','mep'],
+    ['Luna','Lati','mep'],
+    ['Nube','Kasbirka / klaut','mep'],
+    ['Verano','Mani','mep'],
+    ['Invierno (época lluviosa)','Lî piua','mep'],
+    ['Hace frío','Kauhla iwisa','mep'],
+    ['Ir a la playa','Auhya un ra waia sipsa','mep'],
+    ['Usamos ropa abrigada','Kuala tuakni dimisa','mep'],
+    ['El río es grande','Tingki ka ba tara sa','mep'],
+    ['La piedra es dura','Walpika ba karna sa','mep'],
+    ['Bote','Duri','f']
+  ]},
+  {id:'tiempo', nombre:'Días y tiempo', ico:'📅', frases:[
+    ['Lunes','Mundi','mep'],
+    ['Martes','Susdi','mep'],
+    ['Miércoles','Winsdi','mep'],
+    ['Jueves','Tausdi','mep'],
+    ['Viernes','Praidi','mep'],
+    ['Sábado','Satadi','mep'],
+    ['Domingo','Sandi','mep'],
+    ['¿Qué día es hoy?','Naiwa ba dia yua sa?','mep'],
+    ['¿Qué día fue ayer?','Dia yua kan nahwala ba?','mep'],
+    ['¿Qué día será mañana?','Dia yua kaisa yauhka ba?','mep'],
+    ['¿Cuál es tu día favorito?','Ani yua ba kau laiksma?','mep'],
+    ['¿Cuántos días tiene una semana?','Wik ba an dis brisa?','mep'],
+    ['Hoy','Naiwa','mep'],
+    ['Ayer','Nahwala','mep'],
+    ['Mañana (el día siguiente)','Yauhka','mep'],
+    ['Antes','Kaina','mep'],
+    ['Ahora','Naha minit','mep'],
+    ['Después','Ninkara','mep'],
+    ['Día','Kakna','mep'],
+    ['Por la mañana','Titan','mep'],
+    ['Mediodía','Dinar','mep'],
+    ['Tarde','Tutni','mep'],
+    ['Noche','Tihmia','mep'],
+    ['Medianoche','Midil nait','mep'],
+    ['Amanecer','Ingwaia man','mep'],
+    ['Despertarse','Yapi buaia','mep'],
+    ['Orar','Wan pura sunaia','mep']
+  ]},
+  {id:'numeros', nombre:'Números, formas y tamaños', ico:'🔷', frases:[
+    ['Uno','Kumi','f'],
+    ['Dos','Wal','f'],
+    ['Tres','Yumhpa','mep'],
+    ['Cuatro','Walhwal','f'],
+    ['Cinco','Matsip','f'],
+    ['Muchos','Ailal','mep'],
+    ['Poco','Wiria','mep'],
+    ['Hay tres niños','Tuktan yumhpa bara sa','mep'],
+    ['Hay muchas flores','Tangni ailal sa','mep'],
+    ['Grande','Tara','mep'],
+    ['Mediano','Ninkara','mep'],
+    ['Pequeño','Sirpi','mep'],
+    ['El árbol es grande','Dûsa ba tara sa','mep'],
+    ['La bola es mediana','Bâl ka ba ninkara sa','mep'],
+    ['El ratón es pequeño','Matis ka ba sirpi sa','mep'],
+    ['Cuadrado','Tnaya walhwal','mep'],
+    ['Triángulo','Tnaya yumhpa','mep'],
+    ['Rectángulo','Tnaya wal yari, wal tanhta','mep'],
+    ['Círculo','Krukma','mep'],
+    ['Semicírculo','Bakrik krukma','mep'],
+    ['Pentágono','Tnaya matsip','mep'],
+    ['Hexágono','Tnaya matlalkahbi','mep'],
+    ['Octágono','Thaya it','mep'],
+    ['Rombo','Rumbu','mep']
+  ]},
+  {id:'describir', nombre:'Describir y ubicar', ico:'📍', frases:[
+    ['Encima / sobre','Purara','mep'],
+    ['Debajo','Munhtara','mep'],
+    ['Dentro','Bilara','mep'],
+    ['Fuera','Latara','mep'],
+    ['Delante / enfrente','Mawanra','mep'],
+    ['Detrás','Ninara','mep'],
+    ['Al lado / junto a','Tnayara','mep'],
+    ['Entre / en medio','Midilra / lilara','mep'],
+    ['El libro está sobre la mesa','Buk ba tibil purara sa','mep'],
+    ['La bola está debajo de la mesa','Bâl ba tibil munhtara sa','mep'],
+    ['El niño está sentado junto al árbol','Tuktika ba dus tnayara iwisa','mep'],
+    ['Este / esta','Naha','mep'],
+    ['Este árbol','Naha dusa','mep'],
+    ['Ese / esa','Baha','mep'],
+    ['Aquel / aquella','Bukra','mep'],
+    ['Aquella montaña','Bukra ilka ba','mep'],
+    ['Cerca','Lamara','mep'],
+    ['Lejos','Laihura','mep'],
+    ['Duro','Karna','mep'],
+    ['Suave','Suapni','mep'],
+    ['Áspero','Tramtrama','mep'],
+    ['Esponjoso','Puspusa','mep'],
+    ['Arrugado','Sriwan','mep'],
+    ['Granulado','Ma, ma','mep'],
+    ['Elástico','Dra, dra','mep'],
+    ['Liso','Lalalni','mep'],
+    ['Espinoso','Kiaikira','mep'],
+    ['Gordo','Batana','mep'],
+    ['Delgado','Biawan','mep'],
+    ['Bajo','Prahni','mep'],
+    ['Alto / largo','Yari','mep'],
+    ['Grueso','Tuahni','mep'],
+    ['Ligero','Tanta','mep'],
+    ['El pájaro es pequeño','Daiwa tnawira ba sirpi sa','mep']
+  ]},
+  {id:'verbos', nombre:'Verbos', ico:'🏃', nota:'Todos los verbos en miskito terminan en «aia». Para conjugarlos, usa el conjugador del «Diccionario».', frases:[
+    ['Venir','Balaia','mep'],
+    ['Ver','Kaikaia','mep'],
+    ['Decir','Wiaia','mep'],
+    ['Agarrar / tomar','Alkaia','mep'],
+    ['Dar','Yabaia','mep'],
+    ['Vivir / sentarse','Iwiaia','mep'],
+    ['Pensar','Lukaia','mep'],
+    ['Escribir','Ulbaia','mep'],
+    ['Hablar','Aisaia','mep'],
+    ['Cantar','Aiwanaia','mep'],
+    ['Salir','Takaia','mep'],
+    ['Entrar','Dimaia','mep'],
+    ['Caminar','Wapaia','mep'],
+    ['Dormir','Yapaia','mep'],
+    ['Escuchar','Walaia','mep'],
+    ['Jugar','Pulaia','mep'],
+    ['Lavar','Sikbaia','mep'],
+    ['Comer','Piaia','mep'],
+    ['Oler','Kia briaia','mep'],
+    ['Saborear','Dâbaia','mep'],
+    ['Tocar','Alkaia','mep'],
+    ['Ir','Waia','f'],
+    ['Querer','Want','f'],
+    ['Tener','Briaia','v'],
+    ['Beber','Diaia','f'],
+    ['Aprender','Lan takaia','f']
+  ]}
+];
+
+/* Mis frases (guardadas desde Traducir) y correcciones locales */
+var correcciones = leer('mq_correcciones', {});   // id -> {mi, estado}
+var misFrases = leer('mq_misfrases', []);         // [{es, mi, estado}]
+
+function idFrase(es){ return normal(es).replace(/\s+/g,'_'); }
+function normal(t){
+  return (t||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/[¿?¡!.,;:()«»"“”…]/g,' ').replace(/\s+/g,' ').trim();
+}
+
+function todasLasFrases(){
+  var lista = [];
+  CATEGORIAS.forEach(function(c){
+    c.frases.forEach(function(f){
+      var id = idFrase(f[0]), cor = correcciones[id];
+      lista.push({id:id, es:f[0], mi: cor ? cor.mi : f[1], estado: cor ? cor.estado : f[2], cat:c.id});
+    });
+  });
+  misFrases.forEach(function(f){
+    var id = idFrase(f.es), cor = correcciones[id];
+    lista.push({id:id, es:f.es, mi: cor ? cor.mi : f.mi, estado: cor ? cor.estado : f.estado, cat:'mias'});
+  });
+  return lista;
+}
+
+/* ---------- Tema ---------- */
+var btnTema = document.getElementById('btnTema');
+function aplicarTema(t){
+  document.documentElement.setAttribute('data-theme', t);
+  var oscuro = t === 'dark';
+  btnTema.textContent = oscuro ? '☀️' : '🌙';
+  btnTema.title = oscuro ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro';
+  btnTema.setAttribute('aria-label', btnTema.title);
+}
+aplicarTema(leer('mq_tema', 'light'));
+btnTema.addEventListener('click', function(){
+  var t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  aplicarTema(t); guardar('mq_tema', t);
+});
+
+/* ---------- Audio ---------- */
+var audioOn = leer('mq_audio', true);
+var btnAudio = document.getElementById('btnAudio');
+function pintarAudio(){
+  btnAudio.textContent = audioOn ? '🔊' : '🔇';
+  btnAudio.setAttribute('aria-label', audioOn ? 'Audio activado' : 'Audio silenciado');
+}
+pintarAudio();
+btnAudio.addEventListener('click', function(){
+  audioOn = !audioOn; guardar('mq_audio', audioOn); pintarAudio();
+  if(!audioOn) detenerTodo();
+});
+
+var sintesis = window.speechSynthesis || null;
+var vozEs = null;
+function elegirVoz(){
+  if(!sintesis) return;
+  var voces = sintesis.getVoices().filter(function(v){ return /^es([-_]|$)/i.test(v.lang); });
+  var pref = ['es-MX','es-US','es-419','es-CR','es-NI','es-CO','es-ES'];
+  vozEs = null;
+  for(var i=0;i<pref.length && !vozEs;i++){
+    vozEs = voces.find(function(v){ return v.lang.replace(/_/g,'-').toLowerCase() === pref[i].toLowerCase(); }) || null;
+  }
+  if(!vozEs && voces.length) vozEs = voces[0];
+}
+if(sintesis){ sintesis.getVoices(); elegirVoz(); sintesis.onvoiceschanged = elegirVoz; }
+
+var audioActual = null, quienHabla = null;
+function detenerTodo(){
+  if(sintesis) sintesis.cancel();
+  if(audioActual){ audioActual.pause(); audioActual = null; }
+  quienHabla = null;
+}
+// Lee texto con voz en español. Devuelve false si no hay síntesis.
+function decir(texto, clave){
+  if(!audioOn || !sintesis) return false;
+  if(quienHabla === clave){ detenerTodo(); return true; } // segundo toque detiene
+  detenerTodo();
+  var u = new SpeechSynthesisUtterance(texto);
+  if(vozEs){ u.voice = vozEs; u.lang = vozEs.lang.replace(/_/g,'-'); } else { u.lang = 'es-US'; }
+  u.rate = 0.9;
+  u.onend = function(){ if(quienHabla === clave) quienHabla = null; };
+  quienHabla = clave;
+  sintesis.speak(u);
+  return true;
+}
+// Prepara texto miskito para que una voz en español lo lea lo mejor posible
+function paraVoz(mi){
+  return mi.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/…/g,'');
+}
+function escucharMiskito(id, texto){
+  if(!audioOn) return;
+  obtenerGrabacion(id).then(function(blob){
+    if(blob){
+      if(quienHabla === 'rec-'+id){ detenerTodo(); return; }
+      detenerTodo();
+      audioActual = new Audio(URL.createObjectURL(blob));
+      quienHabla = 'rec-'+id;
+      audioActual.onended = function(){ quienHabla = null; };
+      audioActual.play();
+    } else {
+      decir(paraVoz(texto), 'mi-'+id);
+    }
+  });
+}
+
+var INSTRUCCIONES = {
+  traducir:'Toca el botón Hablar y di una frase corta en español. También puedes escribirla. Luego toca Traducir al miskito. Esta versión funciona sin internet.',
+  documentos:'Toca Subir documento para elegir un archivo de Word o de texto. Luego toca Traducir documento. Cada párrafo aparece en español y en miskito.',
+  imagenes:'Mira los dibujos. Toca un dibujo para escuchar la palabra en miskito. Toca En español para escuchar la frase en español.',
+  frases:'Elige un grupo de frases. Toca Escuchar para oír la frase en miskito. Una persona que hable miskito puede tocar Grabar para guardar su voz, o Corregir para arreglar la traducción.'
+};
+document.querySelectorAll('[data-instr]').forEach(function(b){
+  b.addEventListener('click', function(){ decir(INSTRUCCIONES[b.dataset.instr], 'instr-'+b.dataset.instr); });
+});
+
+/* ---------- Grabaciones (IndexedDB) ---------- */
+var dbPromesa = new Promise(function(resolver){
+  try{
+    var req = indexedDB.open('traductor-miskito', 1);
+    req.onupgradeneeded = function(){ req.result.createObjectStore('grabaciones'); };
+    req.onsuccess = function(){ resolver(req.result); };
+    req.onerror = function(){ resolver(null); };
+  }catch(e){ resolver(null); }
+});
+function obtenerGrabacion(id){
+  return dbPromesa.then(function(db){
+    if(!db) return null;
+    return new Promise(function(res){
+      try{
+        var r = db.transaction('grabaciones').objectStore('grabaciones').get(id);
+        r.onsuccess = function(){ res(r.result || null); };
+        r.onerror = function(){ res(null); };
+      }catch(e){ res(null); }
+    });
+  });
+}
+function guardarGrabacion(id, blob){
+  return dbPromesa.then(function(db){
+    if(!db) return;
+    return new Promise(function(res){
+      try{
+        var tx = db.transaction('grabaciones','readwrite');
+        tx.objectStore('grabaciones').put(blob, id);
+        tx.oncomplete = res; tx.onerror = res;
+      }catch(e){ res(); }
+    });
+  });
+}
+function borrarGrabacion(id){
+  return dbPromesa.then(function(db){
+    if(!db) return;
+    return new Promise(function(res){
+      try{
+        var tx = db.transaction('grabaciones','readwrite');
+        tx.objectStore('grabaciones').delete(id);
+        tx.oncomplete = res; tx.onerror = res;
+      }catch(e){ res(); }
+    });
+  });
+}
+function confirmarBorrado(id, repintar){
+  if(!confirm('¿Borrar la grabación? Se volverá a escuchar la voz de la computadora.')) return;
+  detenerTodo();
+  borrarGrabacion(id).then(repintar);
+}
+function listarGrabadas(){
+  return dbPromesa.then(function(db){
+    if(!db) return [];
+    return new Promise(function(res){
+      try{
+        var r = db.transaction('grabaciones').objectStore('grabaciones').getAllKeys();
+        r.onsuccess = function(){ res(r.result || []); };
+        r.onerror = function(){ res([]); };
+      }catch(e){ res([]); }
+    });
+  });
+}
+
+var grabador = null;
+function alternarGrabacion(id, boton){
+  if(grabador && grabador.state === 'recording'){ grabador.stop(); return; }
+  if(!navigator.mediaDevices || !window.MediaRecorder){ alert('Este navegador no permite grabar audio.'); return; }
+  navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+    var trozos = [];
+    grabador = new MediaRecorder(stream);
+    grabador.ondataavailable = function(e){ if(e.data.size) trozos.push(e.data); };
+    grabador.onstop = function(){
+      stream.getTracks().forEach(function(t){ t.stop(); });
+      var blob = new Blob(trozos, {type: grabador.mimeType || 'audio/webm'});
+      guardarGrabacion(id, blob).then(seccionActual === 'imagenes' ? pintarImagenes : pintarFrases);
+    };
+    grabador.start();
+    boton.classList.add('grabando'); boton.textContent = '⏹️ Detener';
+  }).catch(function(){ alert('No se pudo usar el micrófono. Revisa el permiso del navegador.'); });
+}
+
+/* ---------- Navegación ---------- */
+var seccionActual = 'inicio';
+function ir(id){
+  detenerTodo();
+  document.querySelectorAll('.seccion').forEach(function(s){ s.classList.toggle('oculto', s.id !== id); });
+  seccionActual = id;
+  window.scrollTo(0,0);
+  if(id === 'frases') pintarFrases();
+  if(id === 'diccionario'){ pintarDiccionario(); llenarVerbos(); }
+  if(id === 'imagenes') pintarImagenes();
+}
+document.addEventListener('click', function(e){
+  var b = e.target.closest('[data-ir]');
+  if(b) ir(b.dataset.ir);
+});
+
+/* ---------- Frases ---------- */
+var catActual = 'saludos';
+function categoriasVisibles(){
+  var cats = CATEGORIAS.slice();
+  if(misFrases.length) cats.push({id:'mias', nombre:'Mis frases', ico:'⭐'});
+  return cats;
+}
+function chipEstado(estado){
+  if(estado === 'mep') return '<span class="chip ok">Material MEP</span>';
+  if(estado === 'f') return '<span class="chip ok">Fuente</span>';
+  if(estado === 'r') return '<span class="chip ok">Revisada</span>';
+  if(estado === 'ia') return '<span class="chip ia">IA aproximada</span>';
+  if(estado === 'reglas') return '<span class="chip warn">Por reglas (aproximada)</span>';
+  if(estado === 'v') return '<span class="chip warn">Por verificar</span>';
+  return '<span class="chip warn">Sin traducción</span>';
+}
+function esc(t){ return String(t).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+function pintarFrases(){
+  var pest = document.getElementById('pestanasFrases');
+  pest.innerHTML = categoriasVisibles().map(function(c){
+    return '<button class="pill chico'+(c.id===catActual?' activa':'')+'" data-cat="'+c.id+'">'+c.ico+' '+esc(c.nombre)+'</button>';
+  }).join('');
+  var cat = categoriasVisibles().find(function(c){ return c.id === catActual; }) || CATEGORIAS[0];
+  document.getElementById('notaCategoria').textContent = cat.nota || '';
+  var frases = todasLasFrases().filter(function(f){ return f.cat === catActual; });
+  listarGrabadas().then(function(grabadas){
+    document.getElementById('listaFrases').innerHTML = frases.map(function(f){
+      var tiene = grabadas.indexOf(f.id) >= 0;
+      return '<div class="frase" data-id="'+f.id+'">'+
+        '<div class="es">'+esc(f.es)+'</div>'+
+        (f.mi ? '<div class="mi">'+esc(f.mi)+'</div>' : '<div class="mi vacia">Falta la traducción</div>')+
+        '<div>'+chipEstado(f.mi ? f.estado : '')+(tiene?' <span class="chip ok">🎙️ Voz grabada</span>':'')+'</div>'+
+        '<div class="acciones">'+
+          (f.mi ? '<button class="pill" data-acc="oir">🔊 Miskito</button>' : '')+
+          '<button class="pill azul" data-acc="es">🗣️ Español</button>'+
+          '<button class="pill sec" data-acc="editar">✏️ Corregir</button>'+
+          '<button class="pill coral" data-acc="grabar">🎙️ '+(tiene ? 'Grabar de nuevo' : 'Grabar')+'</button>'+
+          (tiene ? '<button class="pill sec" data-acc="borrarvoz">🗑️ Borrar grabación</button>' : '')+
+        '</div></div>';
+    }).join('');
+  });
+}
+document.getElementById('pestanasFrases').addEventListener('click', function(e){
+  var b = e.target.closest('[data-cat]'); if(!b) return;
+  catActual = b.dataset.cat; pintarFrases();
+});
+document.getElementById('listaFrases').addEventListener('click', function(e){
+  var b = e.target.closest('[data-acc]'); if(!b) return;
+  var tarjeta = b.closest('.frase'), id = tarjeta.dataset.id;
+  var f = todasLasFrases().find(function(x){ return x.id === id; });
+  var acc = b.dataset.acc;
+  if(acc === 'oir') escucharMiskito(id, f.mi);
+  if(acc === 'es') decir(f.es.replace(/…/g, ''), 'es-' + id);
+  if(acc === 'grabar') alternarGrabacion(id, b);
+  if(acc === 'editar') abrirEditor(tarjeta, f);
+  if(acc === 'borrarvoz') confirmarBorrado(id, pintarFrases);
+});
+function abrirEditor(tarjeta, f, repintar){
+  repintar = repintar || pintarFrases;
+  var acciones = tarjeta.querySelector('.acciones');
+  acciones.innerHTML = '<div class="editor"><input type="text" value="'+esc(f.mi)+'" aria-label="Traducción en miskito">'+
+    '<button class="pill verde" data-ok>Guardar</button><button class="pill sec" data-cancel>Cancelar</button></div>';
+  var inp = acciones.querySelector('input'); inp.focus();
+  acciones.querySelector('[data-ok]').onclick = function(){
+    var v = inp.value.trim();
+    if(v){ correcciones[f.id] = {mi:v, estado:'r'}; } else { delete correcciones[f.id]; }
+    guardar('mq_correcciones', correcciones); repintar();
+  };
+  acciones.querySelector('[data-cancel]').onclick = repintar;
+  inp.addEventListener('keydown', function(e){ if(e.key === 'Enter') acciones.querySelector('[data-ok]').click(); });
+}
+
+/* ---------- Imágenes de la vida diaria ---------- */
+// Dibujos SVG propios (sin archivos externos)
+var T = 'stroke="#3a3a3a" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"';
+function svg(c){ return '<svg viewBox="0 0 160 120" aria-hidden="true">' + c + '</svg>'; }
+function corazon(x, y, s, color){
+  return '<path transform="translate(' + x + ' ' + y + ') scale(' + s + ')" d="M0 -6 C0 -16 -16 -16 -16 -4 C-16 6 0 14 0 20 C0 14 16 6 16 -4 C16 -16 0 -16 0 -6Z" fill="' + color + '" ' + T + '/>';
+}
+function cara(boca, extra, fondo, ojosCerrados){
+  var ojos = ojosCerrados
+    ? '<path d="M56 52 q8 6 16 0 M88 52 q8 6 16 0" fill="none" ' + T + ' stroke-width="4"/>'
+    : '<circle cx="64" cy="50" r="5" fill="#3a3a3a"/><circle cx="96" cy="50" r="5" fill="#3a3a3a"/>';
+  return '<circle cx="80" cy="60" r="44" fill="' + (fondo || '#ffd54f') + '" ' + T + '/>' + ojos +
+    '<path d="' + boca + '" fill="none" ' + T + ' stroke-width="5"/>' + (extra || '');
+}
+// Niño o niña sencillo; y = parte de arriba de la cabeza
+function nino(x, y, ropa, brazo){
+  var der = brazo === 'arriba' ? 'M' + (x+12) + ' ' + (y+34) + ' L' + (x+22) + ' ' + (y+4)
+          : brazo === 'adelante' ? 'M' + (x+12) + ' ' + (y+36) + ' L' + (x+36) + ' ' + (y+36)
+          : 'M' + (x+13) + ' ' + (y+34) + ' L' + (x+16) + ' ' + (y+56);
+  return '<path d="' + der + '" stroke="' + ropa + '" stroke-width="8" stroke-linecap="round"/>' +
+    (brazo === 'arriba' ? '<circle cx="' + (x+22) + '" cy="' + (y+2) + '" r="5" fill="#c98b5c" ' + T + ' stroke-width="2"/>' : '') +
+    '<path d="M' + (x-13) + ' ' + (y+34) + ' L' + (x-16) + ' ' + (y+56) + '" stroke="' + ropa + '" stroke-width="8" stroke-linecap="round"/>' +
+    '<path d="M' + (x-6) + ' ' + (y+60) + ' V' + (y+84) + ' M' + (x+6) + ' ' + (y+60) + ' V' + (y+84) + '" stroke="#34495e" stroke-width="8" stroke-linecap="round"/>' +
+    '<rect x="' + (x-14) + '" y="' + (y+26) + '" width="28" height="36" rx="10" fill="' + ropa + '" ' + T + '/>' +
+    '<circle cx="' + x + '" cy="' + (y+13) + '" r="12" fill="#c98b5c" ' + T + '/>' +
+    '<path d="M' + (x-12) + ' ' + (y+11) + ' Q' + x + ' ' + (y-7) + ' ' + (x+12) + ' ' + (y+11) + ' Q' + x + ' ' + (y+3) + ' ' + (x-12) + ' ' + (y+11) + 'Z" fill="#3b2a20"/>';
+}
+function burbuja(x, y, w, h, txt, color){
+  return '<path d="M' + (x+8) + ' ' + y + ' H' + (x+w-8) + ' Q' + (x+w) + ' ' + y + ' ' + (x+w) + ' ' + (y+8) + ' V' + (y+h-8) +
+    ' Q' + (x+w) + ' ' + (y+h) + ' ' + (x+w-8) + ' ' + (y+h) + ' H' + (x+26) + ' L' + (x+12) + ' ' + (y+h+10) + ' L' + (x+15) + ' ' + (y+h) +
+    ' H' + (x+8) + ' Q' + x + ' ' + (y+h) + ' ' + x + ' ' + (y+h-8) + ' V' + (y+8) + ' Q' + x + ' ' + y + ' ' + (x+8) + ' ' + y + 'Z" fill="#fff" ' + T + '/>' +
+    '<text x="' + (x + w/2) + '" y="' + (y + h/2 + (h > 40 ? 9 : 6)) + '" font-family="Arial" font-weight="800" font-size="' + (h > 40 ? 26 : 17) + '" text-anchor="middle" fill="' + color + '">' + txt + '</text>';
+}
+var CHECK = function(x, y){ return '<circle cx="' + x + '" cy="' + y + '" r="13" fill="#23874f"/><path d="M' + (x-6) + ' ' + y + ' l4 5 8 -9" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>'; };
+var EQUIS = function(x, y){ return '<circle cx="' + x + '" cy="' + y + '" r="13" fill="#c62828"/><path d="M' + (x-5) + ' ' + (y-5) + ' l10 10 M' + (x+5) + ' ' + (y-5) + ' l-10 10" stroke="#fff" stroke-width="4" stroke-linecap="round"/>'; };
+var CHISPAS = '<path d="M24 20 l4 10 10 4 -10 4 -4 10 -4 -10 -10 -4 10 -4z M136 16 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3z" fill="#e0a21b"/>';
+var PUPITRE = '<rect x="26" y="84" width="108" height="9" rx="3" fill="#a0522d" ' + T + '/><path d="M36 93 V116 M124 93 V116" ' + T + ' stroke-width="5"/>';
+var DIBUJOS = {
+  bano: svg('<rect x="58" y="10" width="44" height="32" rx="6" fill="#bfe3ee" ' + T + '/><rect x="72" y="18" width="16" height="5" rx="2" fill="#3a3a3a"/>' +
+    '<rect x="42" y="44" width="76" height="11" rx="5" fill="#e6f4f8" ' + T + '/><path d="M46 55 H114 Q112 84 86 88 L90 110 H70 L74 88 Q48 84 46 55Z" fill="#fff" ' + T + '/>'),
+  agua: svg('<path d="M48 18 H112 L103 110 H57 Z" fill="#eaf6fb"/><path d="M53 50 H107 L103 110 H57 Z" fill="#5bb8de"/>' +
+    '<path d="M48 18 H112 L103 110 H57 Z" fill="none" ' + T + '/><path d="M134 28 Q146 46 134 54 Q122 46 134 28Z" fill="#5bb8de" ' + T + '/>'),
+  comer: svg('<ellipse cx="80" cy="64" rx="44" ry="40" fill="#fff" ' + T + '/><ellipse cx="80" cy="64" rx="30" ry="27" fill="#f7efe0" stroke="#c9b48f" stroke-width="2"/>' +
+    '<circle cx="70" cy="60" r="7" fill="#7a3e22"/><circle cx="78" cy="70" r="7" fill="#7a3e22"/><circle cx="66" cy="72" r="6" fill="#7a3e22"/>' +
+    '<ellipse cx="92" cy="60" rx="12" ry="9" fill="#fff" stroke="#c9b48f" stroke-width="2"/>' +
+    '<path d="M16 16 V36 Q16 46 22 46 Q28 46 28 36 V16 M22 16 V40 M22 46 V110" fill="none" ' + T + ' stroke-width="4"/>' +
+    '<ellipse cx="138" cy="30" rx="9" ry="14" fill="#ddd" ' + T + '/><path d="M138 44 V110" ' + T + ' stroke-width="5"/>'),
+  fruta: svg('<path d="M58 38 Q96 28 100 68 Q100 104 64 102 Q32 98 34 68 Q36 44 58 38Z" fill="#f6a623" ' + T + '/><ellipse cx="80" cy="60" rx="10" ry="14" fill="#e8742a" opacity=".6"/>' +
+    '<path d="M62 38 Q70 16 92 20 Q84 38 62 38Z" fill="#4caf50" ' + T + '/><path d="M104 98 Q140 92 144 48 Q150 42 154 50 Q154 106 104 106Z" fill="#ffe066" ' + T + '/>'),
+  dormir: svg('<rect x="14" y="48" width="12" height="62" rx="3" fill="#a0522d" ' + T + '/><rect x="134" y="66" width="12" height="44" rx="3" fill="#a0522d" ' + T + '/>' +
+    '<rect x="20" y="70" width="120" height="22" rx="4" fill="#9fc5e8" ' + T + '/><rect x="30" y="54" width="32" height="18" rx="9" fill="#fff" ' + T + '/>' +
+    '<rect x="58" y="60" width="78" height="16" rx="7" fill="#6fa8dc" ' + T + '/>' +
+    '<text x="100" y="40" font-family="Arial" font-weight="900" font-size="24" fill="#3d5a99">Z</text><text x="122" y="24" font-family="Arial" font-weight="900" font-size="17" fill="#3d5a99">z</text>'),
+  lavar: svg('<path d="M34 30 H98 Q112 30 112 44 V54 H98 V44 H34 Z" fill="#c0c7cf" ' + T + '/><rect x="52" y="16" width="18" height="14" rx="3" fill="#9aa4ad" ' + T + '/>' +
+    '<path d="M105 62 q6 9 0 13 q-6 -4 0 -13z M105 80 q6 9 0 13 q-6 -4 0 -13z" fill="#5bb8de"/>' +
+    '<path d="M30 96 H146 Q140 118 88 118 Q36 118 30 96Z" fill="#eaf6fb" ' + T + '/>' +
+    '<circle cx="54" cy="84" r="7" fill="#fff" stroke="#9fd3e6" stroke-width="2"/><circle cx="66" cy="74" r="5" fill="#fff" stroke="#9fd3e6" stroke-width="2"/><circle cx="130" cy="80" r="6" fill="#fff" stroke="#9fd3e6" stroke-width="2"/>'),
+  ayuda: svg('<circle cx="64" cy="40" r="14" fill="#c98b5c" ' + T + '/><path d="M46 112 V76 Q46 58 64 58 Q82 58 82 76 V112Z" fill="#5c8de0" ' + T + '/>' +
+    '<path d="M78 66 L98 32" stroke="#5c8de0" stroke-width="10" stroke-linecap="round"/><circle cx="99" cy="28" r="7" fill="#c98b5c" ' + T + '/>' +
+    '<circle cx="128" cy="40" r="20" fill="#ffd54f" ' + T + '/><text x="128" y="51" font-family="Arial" font-weight="900" font-size="30" text-anchor="middle" fill="#3a3a3a">!</text>'),
+  cabeza: svg('<circle cx="80" cy="64" r="36" fill="#c98b5c" ' + T + '/><path d="M44 60 Q46 26 80 26 Q114 26 116 60 Q104 40 80 42 Q56 40 44 60Z" fill="#3b2a20"/>' +
+    '<path d="M62 66 q6 4 12 0 M86 66 q6 4 12 0 M70 86 q10 -6 20 0" fill="none" ' + T + '/>' +
+    '<path d="M20 34 l10 6 -8 5 12 7 M140 34 l-10 6 8 5 -12 7" fill="none" stroke="#e53935" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>'),
+  estomago: svg('<path d="M48 18 Q80 8 112 18 L120 112 H40 Z" fill="#7cc4a4" ' + T + '/>' +
+    '<path d="M80 64 a4 4 0 1 1 8 0 a8 8 0 1 1 -16 0 a12 12 0 1 1 24 0 a16 16 0 1 1 -32 0" fill="none" stroke="#e53935" stroke-width="4" stroke-linecap="round"/>' +
+    '<path d="M20 50 l10 6 -8 5 12 7 M140 50 l-10 6 8 5 -12 7" fill="none" stroke="#e53935" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>'),
+  feliz: svg(cara('M58 72 Q80 96 102 72')),
+  triste: svg(cara('M60 88 Q80 70 100 88', '<path d="M64 60 q5 9 0 13 q-5 -4 0 -13z" fill="#5bb8de"/>')),
+  mama: svg('<path d="M40 42 Q40 16 62 16 Q84 16 84 42 V66 H40Z" fill="#3b2a20"/><circle cx="62" cy="40" r="15" fill="#c98b5c" ' + T + '/>' +
+    '<path d="M62 58 L34 112 H90 Z" fill="#e57373" ' + T + '/>' + corazon(122, 52, 1.2, '#e53935')),
+  papa: svg('<circle cx="70" cy="34" r="16" fill="#c98b5c" ' + T + '/><path d="M54 30 Q55 14 70 14 Q85 14 86 30 Q78 21 70 21 Q62 21 54 30Z" fill="#3b2a20"/>' +
+    '<path d="M44 112 V66 Q44 54 70 54 Q96 54 96 66 V112Z" fill="#4f9d69" ' + T + '/>' + corazon(128, 52, 1.1, '#e53935')),
+  casa: svg('<path d="M44 92 V114 M80 92 V114 M116 92 V114" ' + T + ' stroke-width="5"/><rect x="36" y="52" width="88" height="40" fill="#f3d9a4" ' + T + '/>' +
+    '<path d="M24 54 L80 14 L136 54Z" fill="#c4502a" ' + T + '/><rect x="72" y="64" width="18" height="28" fill="#8d5a33" ' + T + '/>' +
+    '<rect x="46" y="62" width="16" height="14" fill="#9fd3e6" ' + T + '/><rect x="100" y="62" width="16" height="14" fill="#9fd3e6" ' + T + '/>'),
+  escuela: svg('<rect x="22" y="50" width="116" height="60" fill="#f6e3b4" ' + T + '/><path d="M14 52 L80 18 L146 52Z" fill="#2f62d9" ' + T + '/>' +
+    '<circle cx="80" cy="40" r="7" fill="#e0a21b" ' + T + '/><rect x="70" y="80" width="20" height="30" fill="#8d5a33" ' + T + '/>' +
+    '<rect x="32" y="62" width="18" height="16" fill="#9fd3e6" ' + T + '/><rect x="110" y="62" width="18" height="16" fill="#9fd3e6" ' + T + '/>' +
+    '<rect x="32" y="86" width="18" height="16" fill="#9fd3e6" ' + T + '/><rect x="110" y="86" width="18" height="16" fill="#9fd3e6" ' + T + '/>'),
+  libro: svg('<path d="M12 30 V106 Q56 100 80 112 Q104 100 148 106 V30" fill="#2f62d9" ' + T + '/>' +
+    '<path d="M80 32 Q56 20 20 26 V98 Q56 92 80 104Z" fill="#fff" ' + T + '/><path d="M80 32 Q104 20 140 26 V98 Q104 92 80 104Z" fill="#fff" ' + T + '/>' +
+    '<path d="M30 42 H68 M30 54 H68 M30 66 H62 M92 42 H130 M92 54 H130 M92 66 H124" stroke="#9aa4ad" stroke-width="3" stroke-linecap="round"/>'),
+  jugar: svg('<circle cx="80" cy="62" r="44" fill="#ffd54f" ' + T + '/><path d="M80 18 Q52 62 80 106" fill="none" stroke="#e53935" stroke-width="9"/>' +
+    '<path d="M80 18 Q108 62 80 106" fill="none" stroke="#2f62d9" stroke-width="9"/><circle cx="80" cy="62" r="44" fill="none" ' + T + '/>' +
+    '<path d="M18 112 H142" stroke="#4caf50" stroke-width="6" stroke-linecap="round"/>'),
+  hola: svg('<path d="M24 22 H136 Q146 22 146 32 V76 Q146 86 136 86 H72 L50 108 L54 86 H24 Q14 86 14 76 V32 Q14 22 24 22Z" fill="#fff" ' + T + '/>' +
+    '<text x="80" y="64" font-family="Arial" font-weight="800" font-size="28" text-anchor="middle" fill="#0f7c8c">Naksa!</text>'),
+  gracias: svg(corazon(80, 56, 3, '#e53935') + '<path d="M28 24 l4 10 10 4 -10 4 -4 10 -4 -10 -10 -4 10 -4z M132 20 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3z" fill="#e0a21b"/>'),
+  enojado: svg(cara('M62 88 Q80 74 98 88', '<path d="M52 36 L72 46 M108 36 L88 46" stroke="#3a3a3a" stroke-width="5" stroke-linecap="round"/>', '#ff9e80')),
+  miedo: svg(cara('M70 84 Q80 70 90 84 Q80 98 70 84Z', '<path d="M54 36 Q64 28 74 36 M86 36 Q96 28 106 36" fill="none" stroke="#3a3a3a" stroke-width="4" stroke-linecap="round"/>', '#ffe9a8')),
+  calmado: svg(cara('M64 76 Q80 88 96 76', '', '#b2dfdb', true)),
+  fiebre: svg('<rect x="68" y="12" width="24" height="76" rx="12" fill="#fff" ' + T + '/><rect x="75" y="28" width="10" height="66" rx="4" fill="#e53935"/>' +
+    '<circle cx="80" cy="98" r="16" fill="#e53935" ' + T + '/><path d="M92 30 H86 M92 44 H86 M92 58 H86" ' + T + ' stroke-width="2"/>' +
+    '<path d="M28 40 q8 10 0 20 q-8 10 0 20 M132 40 q8 10 0 20 q-8 10 0 20" fill="none" stroke="#ff7043" stroke-width="4" stroke-linecap="round"/>'),
+  dientes: svg('<path d="M30 38 Q30 18 50 18 Q60 18 64 25 Q68 18 78 18 Q98 18 98 38 Q98 60 90 74 Q86 102 78 102 Q72 102 70 84 Q66 74 62 84 Q60 102 54 102 Q46 102 42 74 Q30 60 30 38Z" fill="#fff" ' + T + '/>' +
+    '<g transform="rotate(25 128 62)"><rect x="122" y="30" width="12" height="84" rx="6" fill="#2f62d9" ' + T + '/><rect x="118" y="10" width="20" height="24" rx="3" fill="#e6f4f8" ' + T + '/></g>' + CHISPAS),
+  banarse: svg('<path d="M24 14 H96 V28" fill="none" ' + T + ' stroke-width="6"/><path d="M76 28 H116 L108 42 H84 Z" fill="#9aa4ad" ' + T + '/>' +
+    '<path d="M88 52 v8 M96 50 v12 M104 52 v8 M92 70 v8 M100 68 v10" stroke="#5bb8de" stroke-width="4" stroke-linecap="round"/>' +
+    '<path d="M18 84 H142 Q138 114 80 114 Q22 114 18 84Z" fill="#eaf6fb" ' + T + '/>' +
+    '<circle cx="46" cy="80" r="9" fill="#fff" stroke="#9fd3e6" stroke-width="2"/><circle cx="62" cy="74" r="7" fill="#fff" stroke="#9fd3e6" stroke-width="2"/><circle cx="120" cy="78" r="8" fill="#fff" stroke="#9fd3e6" stroke-width="2"/>'),
+  lapiz: svg('<g transform="rotate(-28 80 60)"><rect x="34" y="48" width="84" height="24" fill="#f6c343" ' + T + '/><path d="M118 48 L146 60 L118 72Z" fill="#f3d9a4" ' + T + '/>' +
+    '<path d="M138 56 L146 60 L138 64Z" fill="#3a3a3a"/><rect x="18" y="48" width="16" height="24" rx="4" fill="#e57373" ' + T + '/></g>'),
+  cuaderno: svg('<rect x="44" y="12" width="78" height="98" rx="6" fill="#2f62d9" ' + T + '/><rect x="60" y="30" width="48" height="18" rx="3" fill="#fff"/>' +
+    '<path d="M64 36 H104 M64 42 H94" stroke="#9aa4ad" stroke-width="2"/>' +
+    '<path d="M38 24 h12 M38 40 h12 M38 56 h12 M38 72 h12 M38 88 h12" stroke="#3a3a3a" stroke-width="4" stroke-linecap="round"/>'),
+  comedor: svg('<rect x="16" y="58" width="128" height="10" rx="3" fill="#a0522d" ' + T + '/><path d="M28 68 V112 M132 68 V112" ' + T + ' stroke-width="6"/>' +
+    '<ellipse cx="54" cy="52" rx="22" ry="7" fill="#fff" ' + T + '/><ellipse cx="106" cy="52" rx="22" ry="7" fill="#fff" ' + T + '/>' +
+    '<circle cx="50" cy="48" r="5" fill="#7a3e22"/><circle cx="58" cy="48" r="5" fill="#f2f2f2" stroke="#ccc"/><circle cx="104" cy="48" r="6" fill="#f6a623"/>' +
+    '<rect x="74" y="34" width="12" height="18" rx="2" fill="#bfe3ee" ' + T + ' stroke-width="2"/>'),
+  porfavor: svg(burbuja(24, 30, 112, 56, 'Plis', '#23874f') + CHISPAS),
+  adios: svg(burbuja(24, 30, 112, 56, 'Aisabi', '#7d4cc4') + '<path d="M128 100 q8 -10 0 -20 M138 104 q12 -14 0 -28" fill="none" stroke="#e0a21b" stroke-width="4" stroke-linecap="round"/>'),
+  // Normas de clase
+  norma1: svg(nino(80, 10, '#5c8de0', 'arriba') + PUPITRE + '<rect x="42" y="76" width="30" height="8" rx="2" fill="#fff" ' + T + ' stroke-width="2"/>'),
+  norma2: svg('<path d="M58 22 Q96 14 100 50 Q102 70 86 80 Q78 86 80 98 Q78 110 64 106" fill="#c98b5c" ' + T + '/><path d="M70 40 Q86 36 86 54 Q86 62 76 64" fill="none" ' + T + '/>' +
+    '<path d="M114 42 Q124 60 114 78 M126 32 Q142 60 126 88" fill="none" stroke="#2f62d9" stroke-width="5" stroke-linecap="round"/>'),
+  norma3: svg(burbuja(8, 8, 66, 30, 'Plis', '#23874f') + burbuja(86, 40, 68, 30, 'Tingki', '#c4502a') + burbuja(10, 76, 76, 30, 'Iskius', '#2f62d9')),
+  norma4: svg(nino(48, 22, '#e57373', 'abajo') + nino(112, 16, '#7d4cc4', 'abajo') + corazon(80, 22, 0.9, '#e53935')),
+  norma5: svg(PUPITRE + '<rect x="40" y="62" width="40" height="10" fill="#e57373" ' + T + ' stroke-width="2"/><rect x="44" y="52" width="34" height="10" fill="#2f62d9" ' + T + ' stroke-width="2"/>' +
+    '<rect x="96" y="58" width="16" height="26" rx="3" fill="#4caf50" ' + T + ' stroke-width="2"/><path d="M100 58 V44 M106 58 V40" stroke="#f6c343" stroke-width="4" stroke-linecap="round"/>' + CHISPAS),
+  norma6: svg(nino(46, 18, '#4f9d69', 'abajo') + CHECK(46, 112 - 2) + '<g transform="rotate(18 114 60)">' + nino(114, 18, '#e0a21b', 'adelante') + '</g>' + EQUIS(124, 110) +
+    '<path d="M136 40 h12 M134 52 h14" stroke="#9aa4ad" stroke-width="3" stroke-linecap="round"/>'),
+  norma7: svg('<circle cx="58" cy="58" r="40" fill="#fff" ' + T + '/><path d="M58 58 V32 M58 58 L76 66" ' + T + ' stroke-width="5"/>' +
+    '<path d="M58 22 v6 M58 88 v6 M22 58 h6 M88 58 h6" ' + T + '/>' +
+    '<rect x="106" y="64" width="44" height="44" fill="#f6e3b4" ' + T + '/><path d="M100 66 L128 44 L156 66Z" fill="#2f62d9" ' + T + '/><rect x="122" y="86" width="12" height="22" fill="#8d5a33" ' + T + ' stroke-width="2"/>'),
+  norma8: svg('<rect x="70" y="14" width="84" height="64" rx="4" fill="#2e7d5b" ' + T + '/>' +
+    '<path d="M82 32 l5 5 9 -10 M82 50 l5 5 9 -10 M82 68 l5 5 9 -10" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '<path d="M104 32 H142 M104 50 H142 M104 68 H134" stroke="#fff" stroke-width="3" stroke-linecap="round"/>' + nino(34, 20, '#7d4cc4', 'adelante')),
+  norma9: svg('<path d="M24 16 H68 L50 60 L68 104 H24 L42 60 Z" fill="#fff8e1" ' + T + '/><path d="M32 26 H60 L46 52Z M46 76 L62 98 H30Z" fill="#f6c343"/>' +
+    nino(112, 18, '#5c8de0', 'arriba')),
+  norma10: svg('<path d="M48 40 V108 M48 76 H112 V108 M112 76 V40" fill="none" stroke="#a0522d" stroke-width="7" stroke-linecap="round"/>' +
+    nino(80, 6, '#e0a21b', 'abajo') + '<rect x="44" y="70" width="72" height="8" rx="3" fill="#a0522d"/>' + CHECK(136, 22)),
+  norma11: svg('<path d="M52 56 H112 L104 112 H60 Z" fill="#4caf50" ' + T + '/><rect x="46" y="46" width="72" height="12" rx="4" fill="#388e3c" ' + T + '/>' +
+    '<path d="M70 70 V100 M82 70 V100 M94 70 V100" stroke="#2e7d32" stroke-width="4" stroke-linecap="round"/>' +
+    '<circle cx="82" cy="16" r="10" fill="#fff" ' + T + '/><path d="M82 28 V40 M76 34 l6 7 6 -7" fill="none" stroke="#c4502a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>'),
+  si: svg('<circle cx="80" cy="60" r="46" fill="#23874f"/><path d="M56 62 L74 80 L106 42" fill="none" stroke="#fff" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>'),
+  no: svg('<circle cx="80" cy="60" r="46" fill="#c62828"/><path d="M60 40 L100 80 M100 40 L60 80" stroke="#fff" stroke-width="13" stroke-linecap="round"/>')
+};
+
+// es: frase en español · clave: palabra en español · mi: palabra en miskito · pr: pronunciación (sílaba fuerte en mayúsculas)
+var IMAGENES = [
+  {g:'Lo que necesito', items:[
+    {id:'bano', es:'Necesito ir al baño', clave:'Baño', mi:'Tailit', pr:'TAI-lit', estado:'mep'},
+    {id:'agua', es:'Tengo sed, quiero agua', clave:'Agua', mi:'Lî', pr:'LI', estado:'mep'},
+    {id:'comer', es:'Tengo hambre, quiero comer', clave:'Comida', mi:'Plun', pr:'PLUN', estado:'f'},
+    {id:'fruta', es:'Quiero una fruta', clave:'Fruta', mi:'Mâ', pr:'MA', estado:'f'},
+    {id:'dormir', es:'Tengo sueño, quiero dormir', clave:'Dormir', mi:'Yapaia', pr:'YA-pa-ia', estado:'mep'},
+    {id:'ayuda', es:'Necesito ayuda', clave:'Ayuda', mi:'Hilp', pr:'JILP', estado:'f'}
+  ]},
+  {g:'Higiene y salud', items:[
+    {id:'lavar', es:'Lávate las manos', clave:'Lavarse las manos', mi:'Mihtam sikbaia', pr:'MIH-tam SIK-baia', estado:'mep'},
+    {id:'dientes', es:'Cepíllate los dientes', clave:'Cepillarse los dientes', mi:'Nampa kiauhbaia', pr:'NAM-pa KIAU-baia', estado:'mep'},
+    {id:'banarse', es:'Báñate todos los días', clave:'Bañarse todos los días', mi:'Yu bani aihtabaia', pr:'YU BA-ni AI-ta-baia', estado:'mep'},
+    {id:'cabeza', es:'Me duele la cabeza', clave:'Dolor de cabeza', mi:'Lal klauhan', pr:'LAL KLAU-jan', estado:'mep'},
+    {id:'estomago', es:'Me duele el estómago', clave:'Estómago', mi:'Biara', pr:'BIA-ra', estado:'mep'},
+    {id:'fiebre', es:'¿Tienes fiebre?', clave:'', mi:'Rih brisma?', pr:'RIJ BRIS-ma', estado:'mep'}
+  ]},
+  {g:'Cómo me siento', items:[
+    {id:'feliz', es:'Estoy feliz', clave:'Feliz', mi:'Lilia', pr:'LI-lia', estado:'mep'},
+    {id:'triste', es:'Estoy triste', clave:'Triste', mi:'Sâri', pr:'SAA-ri', estado:'mep'},
+    {id:'enojado', es:'Estoy enojado', clave:'Enojado', mi:'Praut', pr:'PRAUT', estado:'mep'},
+    {id:'miedo', es:'Tengo miedo', clave:'Miedo', mi:'Sibrin', pr:'SI-brin', estado:'mep'},
+    {id:'calmado', es:'Estoy tranquila', clave:'Calmado / tranquilo', mi:'Sâp takan', pr:'SAAP TA-kan', estado:'mep'}
+  ]},
+  {g:'Normas de clase', items:[
+    {id:'norma1', es:'Levanta la mano para hablar o participar', clave:'', mi:'Mihtam bukaia sturi aisaia wantsma pyuara', pr:'', estado:'mep'},
+    {id:'norma2', es:'Escucha con atención cuando otras personas hablan', clave:'', mi:'Sap walaia upla kum sturi aisi pyuara', pr:'', estado:'mep'},
+    {id:'norma3', es:'Usa palabras amables como por favor, gracias y permiso', clave:'', mi:'Sturi yamni nani yus muns aisisma pyuara: plis, tingki an iskius', pr:'', estado:'mep'},
+    {id:'norma4', es:'Respeta a tus compañeros y a tu docente', clave:'', mi:'Rispik munaia pamnika an maistrukam ra', pr:'', estado:'mep'},
+    {id:'norma5', es:'Mantén tu espacio limpio y ordenado', clave:'', mi:'Iwisma pliska ba wapni an klin briaia', pr:'', estado:'mep'},
+    {id:'norma6', es:'Camina dentro del aula; no corras', clave:'', mi:'Klas bilara wapi taukaia, palaia apia', pr:'', estado:'mep'},
+    {id:'norma7', es:'Puntualidad y asistencia', clave:'', mi:'Kul dakbaia apia an sun balaia', pr:'', estado:'mep'},
+    {id:'norma8', es:'Sigue las instrucciones del docente', clave:'', mi:'Maistrukam dia mai wiba bila walaia', pr:'', estado:'mep'},
+    {id:'norma9', es:'Espera tu turno para hablar', clave:'', mi:'Bila kaiks man taim aisaia pyuara', pr:'', estado:'mep'},
+    {id:'norma10', es:'Permanece sentado cuando sea necesario', clave:'', mi:'Pliskam ar sir kam ra iwi bas', pr:'', estado:'mep'},
+    {id:'norma11', es:'Deposita la basura en su lugar', clave:'', mi:'Dipasta ba pliskara mangks', pr:'', estado:'mep'}
+  ]},
+  {g:'Mi familia y mis lugares', items:[
+    {id:'mama', es:'Quiero a mi mamá', clave:'Mamá', mi:'Yapti', pr:'YAP-ti', estado:'mep'},
+    {id:'papa', es:'Mi papá', clave:'Papá', mi:'Aisa', pr:'AI-sa', estado:'mep'},
+    {id:'casa', es:'Quiero ir a mi casa', clave:'Casa', mi:'Utla', pr:'UT-la', estado:'f'},
+    {id:'escuela', es:'Vamos a la escuela', clave:'Escuela', mi:'Skul watla', pr:'SKUL UAT-la', estado:'mep'},
+    {id:'comedor', es:'Voy al comedor', clave:'', mi:'Plun piaia pliska ra auna', pr:'PLUN PI-aia PLIS-ka ra AU-na', estado:'mep'}
+  ]},
+  {g:'En la escuela', items:[
+    {id:'libro', es:'Vamos a leer un libro', clave:'Libro', mi:'Buk', pr:'BUK', estado:'mep'},
+    {id:'lapiz', es:'Mi lápiz', clave:'Lápiz', mi:'Pinsil', pr:'PIN-sil', estado:'mep'},
+    {id:'cuaderno', es:'Abre tu cuaderno', clave:'Cuaderno', mi:'Ulbaia wauhtaika', pr:'UL-baia UAU-taika', estado:'mep'},
+    {id:'jugar', es:'Vamos a jugar', clave:'Jugar', mi:'Pulaia', pr:'PU-la-ia', estado:'mep'}
+  ]},
+  {g:'Para responder', items:[
+    {id:'hola', es:'Hola', clave:'', mi:'Naksa', pr:'NAK-sa', estado:'mep'},
+    {id:'porfavor', es:'Por favor', clave:'', mi:'Du pali / plis', pr:'DU PA-li / PLIS', estado:'mep'},
+    {id:'gracias', es:'Gracias', clave:'', mi:'Tingki', pr:'TING-ki', estado:'mep'},
+    {id:'adios', es:'Adiós', clave:'', mi:'Aisabi', pr:'AI-sa-bi', estado:'mep'},
+    {id:'si', es:'Sí', clave:'', mi:'Au', pr:'AU', estado:'mep'},
+    {id:'no', es:'No', clave:'', mi:'Apia', pr:'A-pia', estado:'mep'}
+  ]}
+];
+// Aplica las correcciones guardadas (una frase completa reemplaza la palabra)
+function imagenesActuales(){
+  var lista = [];
+  IMAGENES.forEach(function(g){
+    g.items.forEach(function(im){
+      var id = 'img_' + im.id, cor = correcciones[id];
+      lista.push({id:id, dib:im.id, g:g.g, es:im.es, clave:im.clave,
+        mi: cor ? cor.mi : im.mi, pr: cor ? '' : im.pr, estado: cor ? cor.estado : im.estado, frase: !!cor});
+    });
+  });
+  return lista;
+}
+function pintarImagenes(){
+  var lista = imagenesActuales();
+  listarGrabadas().then(function(grabadas){
+    document.getElementById('tablero').innerHTML = IMAGENES.map(function(g){
+      return '<h3 class="grupo-img">' + esc(g.g) + '</h3><div class="tablero">' +
+        lista.filter(function(im){ return im.g === g.g; }).map(function(im){
+          var tiene = grabadas.indexOf(im.id) >= 0;
+          return '<div class="picto" data-id="' + im.id + '">' +
+            '<button class="dibujo" data-acc="oir" aria-label="Escuchar en miskito: ' + esc(im.es) + '">' + DIBUJOS[im.dib] + '</button>' +
+            '<div class="info">' +
+              (im.mi ? '<div class="mi">' + esc(im.mi) + '</div>' : '<div class="mi vacia">Falta la palabra en miskito</div>') +
+              (im.pr ? '<div class="pron">Se dice: <b>' + esc(im.pr) + '</b></div>' : '') +
+              '<div class="es">' + esc(im.es) + '</div>' +
+              '<div class="clave">' + (im.mi && !im.frase && im.clave ? esc(im.clave) + ' = ' + esc(im.mi) + ' · ' : '') + chipEstado(im.mi ? im.estado : '') +
+                (tiene ? ' <span class="chip ok">🎙️ Voz grabada</span>' : '') + '</div>' +
+              '<div class="acciones">' +
+                (im.mi ? '<button class="pill" data-acc="oir">🔊 Miskito</button>' : '') +
+                '<button class="pill azul" data-acc="es">🗣️ Español</button>' +
+                '<button class="pill sec" data-acc="editar">✏️ Corregir</button>' +
+                '<button class="pill coral" data-acc="grabar">🎙️ ' + (tiene ? 'Grabar de nuevo' : 'Grabar') + '</button>' +
+                (tiene ? '<button class="pill sec" data-acc="borrarvoz">🗑️ Borrar grabación</button>' : '') +
+              '</div></div></div>';
+        }).join('') + '</div>';
+    }).join('');
+  });
+}
+document.getElementById('tablero').addEventListener('click', function(e){
+  var b = e.target.closest('[data-acc]'); if(!b) return;
+  var tarjeta = b.closest('.picto'), id = tarjeta.dataset.id;
+  var im = imagenesActuales().find(function(x){ return x.id === id; });
+  var acc = b.dataset.acc;
+  if(acc === 'oir'){ if(im.mi) escucharMiskito(id, im.mi); else decir(im.es, 'es-' + id); }
+  if(acc === 'es') decir(im.es, 'es-' + id);
+  if(acc === 'grabar') alternarGrabacion(id, b);
+  if(acc === 'editar') abrirEditor(tarjeta, im, pintarImagenes);
+  if(acc === 'borrarvoz') confirmarBorrado(id, pintarImagenes);
+});
+
+/* ---------- Diccionario ---------- */
+function pintarDiccionario(){
+  var q = normal(document.getElementById('buscar').value);
+  var filas = todasLasFrases().filter(function(f){ return f.mi; })
+    .filter(function(f){ return !q || normal(f.es).indexOf(q) >= 0 || normal(f.mi).indexOf(q) >= 0; })
+    .sort(function(a,b){ return a.es.localeCompare(b.es,'es'); });
+  document.getElementById('tablaDic').innerHTML = filas.length ? filas.map(function(f){
+    return '<tr><td>'+esc(f.es)+'</td><td class="mi">'+esc(f.mi)+' '+chipEstado(f.estado)+'</td>'+
+      '<td style="white-space:nowrap"><button class="pill chico" data-oir="'+f.id+'" aria-label="Escuchar en miskito: '+esc(f.mi)+'" title="Miskito">🔊</button> '+
+      '<button class="pill chico azul" data-oires="'+f.id+'" aria-label="Escuchar en español: '+esc(f.es)+'" title="Español">🗣️</button></td></tr>';
+  }).join('') : '<tr><td colspan="3">No se encontró esa palabra.</td></tr>';
+}
+document.getElementById('buscar').addEventListener('input', pintarDiccionario);
+document.getElementById('tablaDic').addEventListener('click', function(e){
+  var b = e.target.closest('[data-oir],[data-oires]'); if(!b) return;
+  var id = b.dataset.oir || b.dataset.oires;
+  var f = todasLasFrases().find(function(x){ return x.id === id; });
+  if(!f) return;
+  if(b.dataset.oir) escucharMiskito(f.id, f.mi); else decir(f.es.replace(/…/g, ''), 'es-' + f.id);
+});
+
+/* ---------- Conjugador (regla del material MEP) ---------- */
+function verbosConjugables(){
+  var vistos = {}, lista = [];
+  todasLasFrases().forEach(function(f){
+    if(f.mi && /aia$/i.test(f.mi) && !vistos[f.mi.toLowerCase()]){
+      vistos[f.mi.toLowerCase()] = true; lista.push(f);
+    }
+  });
+  return lista.sort(function(a,b){ return a.es.localeCompare(b.es,'es'); });
+}
+var selVerbo = document.getElementById('selVerbo');
+function llenarVerbos(){
+  if(selVerbo.options.length) return;
+  selVerbo.innerHTML = verbosConjugables().map(function(f){
+    return '<option value="' + esc(f.mi) + '"' + (f.mi === 'Piaia' ? ' selected' : '') + '>' + esc(f.es) + ' — ' + esc(f.mi) + '</option>';
+  }).join('');
+  pintarConjugacion();
+}
+function pintarConjugacion(){
+  var v = selVerbo.value, filas = ['Yo (yang)','Usted (man)','Él / ella (witin)'];
+  document.getElementById('tablaConj').innerHTML = filas.map(function(nombre, p){
+    return '<tr><th>' + nombre + '</th>' + ['pasado','presente','futuro'].map(function(t){
+      var forma = conjugar(v, t, p);
+      return '<td class="verbo"><button class="pill sec chico" data-forma="' + esc(forma) + '" aria-label="Escuchar ' + esc(forma) + '">' + esc(forma) + '</button></td>';
+    }).join('') + '</tr>';
+  }).join('');
+}
+selVerbo.addEventListener('change', pintarConjugacion);
+document.getElementById('tablaConj').addEventListener('click', function(e){
+  var b = e.target.closest('[data-forma]'); if(b) decir(paraVoz(b.dataset.forma), 'conj-' + b.dataset.forma);
+});
+
+/* ---------- Reconocimiento de voz ---------- */
+var txtEs = document.getElementById('txtEs');
+var estado = document.getElementById('estado');
+var btnHablar = document.getElementById('btnHablar');
+var Reconocedor = window.SpeechRecognition || window.webkitSpeechRecognition;
+var reco = null, escuchando = false;
+if(!Reconocedor){
+  btnHablar.disabled = true;
+  btnHablar.title = 'Este navegador no reconoce voz. Usa Chrome.';
+}
+btnHablar.addEventListener('click', function(){
+  if(!Reconocedor) return;
+  if(escuchando){ reco.stop(); return; }
+  detenerTodo();
+  reco = new Reconocedor();
+  reco.lang = 'es-US';
+  reco.interimResults = true;
+  reco.continuous = false;
+  var base = txtEs.value ? txtEs.value.trim() + ' ' : '';
+  reco.onresult = function(e){
+    var t = '';
+    for(var i=0;i<e.results.length;i++) t += e.results[i][0].transcript;
+    txtEs.value = base + t;
+  };
+  reco.onstart = function(){ escuchando = true; btnHablar.classList.add('grabando'); btnHablar.textContent = '⏹️ Escuchando…'; estado.textContent = 'Habla ahora en español.'; };
+  reco.onerror = function(e){ estado.textContent = e.error === 'not-allowed' ? 'Permite el uso del micrófono para poder escuchar.' : 'No se escuchó bien. Intenta otra vez.'; };
+  reco.onend = function(){
+    escuchando = false; btnHablar.classList.remove('grabando'); btnHablar.textContent = '🎙️ Hablar';
+    if(txtEs.value.trim()){ estado.textContent = ''; traducir(); }
+  };
+  reco.start();
+});
+document.getElementById('btnLimpiar').addEventListener('click', function(){
+  txtEs.value = ''; estado.textContent = ''; document.getElementById('panelResultado').classList.add('oculto'); txtEs.focus();
+});
+
+/* ---------- Traducción ---------- */
+var ultimo = null; // {es, mi, retro, nota, estado, id}
+
+function buscarFraseExacta(es){
+  var n = normal(es);
+  return todasLasFrases().find(function(f){ return f.mi && normal(f.es) === n; }) || null;
+}
+/* ---------- Traductor por reglas (sin internet) ----------
+   Usa el vocabulario y la gramática del material bilingüe del MEP:
+   - el verbo va al final; «sa / sna / sma» = es, está (él / yo / tú);
+   - «ba» marca al sujeto que ya se nombró; «nani» forma el plural;
+   - «ra» = a, en; «wal» = con; «apia» = no (después del verbo);
+   - conjugación: raíz + ri/ram/an (pasado), isna/isma/isa (presente), amna/ma/bia (futuro). */
+function sinAcento(w){ return w.normalize('NFD').replace(/[̀-ͯ]/g,''); }
+function tokensDe(t){
+  return t.toLowerCase().replace(/[¿?¡!.,;:()«»"“”…]/g,' ').replace(/\s+/g,' ').trim().split(' ').filter(Boolean);
+}
+// Índice español → entrada (incluye frases de varias palabras, como «sala de cómputo»)
+function indicePalabras(){
+  var idx = {};
+  todasLasFrases().forEach(function(f){
+    if(!f.mi) return;
+    f.es.split('/').forEach(function(parte){
+      var n = normal(parte.replace(/\(.*?\)/g,''));
+      if(n && n.split(' ').length <= 5 && !idx[n]) idx[n] = f;
+    });
+  });
+  return idx;
+}
+// Primera opción de una entrada («Du pali / plis» → «du pali», «Tailit ar klasit» → «tailit»)
+function formaMiskito(f){
+  return f.mi.split(' / ')[0].split(' ar ')[0].replace(/[?…]/g,'').trim().toLowerCase();
+}
+
+// Conjugación del miskito (regla del material MEP, con formas especiales comprobadas)
+var TERMINACIONES = {
+  pasado:   ['ri','ram','an'],
+  presente: ['isna','isma','isa'],
+  futuro:   ['amna','ma','bia']
+};
+var KAIA = ['sna','sma','sa'];   // ser / estar: Siknis sma? · Luisa lilia sa
+function conjugar(verbo, tiempo, persona){
+  var palabras = verbo.toLowerCase().split(' '), v = palabras.pop(), forma;
+  if(v === 'want' || v === 'laik'){                       // wantsma, laiksna, laiksma
+    forma = v + KAIA[persona];
+  } else if(v === 'waia'){                                // auna (voy), waram (fuiste)
+    forma = (tiempo === 'presente' && persona === 0) ? 'auna' : 'wa' + TERMINACIONES[tiempo][persona];
+  } else {
+    forma = (v.replace(/aia$/, '') + TERMINACIONES[tiempo][persona]).replace(/ii/g, 'i');
+  }
+  return palabras.concat(forma).join(' ');
+}
+
+// Verbos en español: formas irregulares que más usan los niños
+var IRREG = {
+  ir:     {presente:['voy','vas','va','vamos','van'], pasado:['fui','fuiste','fue','fuimos','fueron']},
+  tener:  {presente:['tengo','tienes','tiene','tenemos','tienen'], pasado:['tuve','tuviste','tuvo','tuvimos','tuvieron'], futuro:['tendré','tendrás','tendrá','tendremos','tendrán']},
+  venir:  {presente:['vengo','vienes','viene','venimos','vienen'], pasado:['vine','viniste','vino','vinimos','vinieron'], futuro:['vendré','vendrás','vendrá','vendremos','vendrán']},
+  decir:  {presente:['digo','dices','dice','decimos','dicen'], pasado:['dije','dijiste','dijo','dijimos','dijeron'], futuro:['diré','dirás','dirá','diremos','dirán']},
+  ver:    {presente:['veo','ves','ve','vemos','ven'], pasado:['vi','viste','vio','vimos','vieron']},
+  dar:    {presente:['doy','das','da','damos','dan'], pasado:['di','diste','dio','dimos','dieron']},
+  dormir: {presente:['duermo','duermes','duerme','dormimos','duermen'], pasado:['dormí','dormiste','durmió','dormimos','durmieron']},
+  jugar:  {presente:['juego','juegas','juega','jugamos','juegan'], pasado:['jugué','jugaste','jugó','jugamos','jugaron']},
+  pensar: {presente:['pienso','piensas','piensa','pensamos','piensan']},
+  oler:   {presente:['huelo','hueles','huele','olemos','huelen']},
+  sentar: {presente:['siento','sientas','sienta','sentamos','sientan']},
+  querer: {presente:['quiero','quieres','quiere','queremos','quieren'], pasado:['quise','quisiste','quiso','quisimos','quisieron'], futuro:['querré','querrás','querrá','querremos','querrán']},
+  salir:  {presente:['salgo','sales','sale','salimos','salen'], futuro:['saldré','saldrás','saldrá','saldremos','saldrán']},
+  tocar:  {pasado:['toqué','tocaste','tocó','tocamos','tocaron']},
+  leer:   {pasado:['leí','leíste','leyó','leímos','leyeron']}
+};
+var REGULARES = {
+  ar: {presente:['o','as','a','amos','an'], pasado:['é','aste','ó','amos','aron'], futuro:['aré','arás','ará','aremos','arán']},
+  er: {presente:['o','es','e','emos','en'], pasado:['í','iste','ió','imos','ieron'], futuro:['eré','erás','erá','eremos','erán']},
+  ir: {presente:['o','es','e','imos','en'], pasado:['í','iste','ió','imos','ieron'], futuro:['iré','irás','irá','iremos','irán']}
+};
+var PERSONA = [0,1,2,0,2], PLURAL = [false,false,false,true,true];
+function indiceVerbos(){
+  var formas = {}, infinitivos = {};
+  todasLasFrases().forEach(function(f){
+    if(!f.mi) return;
+    var ultima = f.mi.toLowerCase().split(' ').pop();
+    if(!/aia$/.test(ultima) && ultima !== 'want' && ultima !== 'laik') return;
+    f.es.split('/').forEach(function(parte){
+      var inf = normal(parte.replace(/\(.*?\)/g,'')).replace(/se$/,'');
+      if(!/^[a-z]*(ar|er|ir)$/.test(inf) || infinitivos[inf]) return;
+      infinitivos[inf] = f.mi;
+      ['presente','pasado','futuro'].forEach(function(t){
+        var lista = (IRREG[inf] && IRREG[inf][t]) ||
+          REGULARES[inf.slice(-2)][t].map(function(fin){ return inf.slice(0,-2) + fin; });
+        lista.forEach(function(forma, k){
+          var dato = {inf:inf, mi:f.mi, tiempo:t, persona:PERSONA[k], plural:PLURAL[k]};
+          if(!formas[forma]) formas[forma] = dato;
+          if(!formas[sinAcento(forma)]) formas[sinAcento(forma)] = dato;
+        });
+      });
+    });
+  });
+  return {formas:formas, infinitivos:infinitivos};
+}
+
+var PRONOMBRES = {
+  'yo':{mi:'yang', p:0}, 'tú':{mi:'man', p:1}, 'usted':{mi:'man', p:1}, 'él':{mi:'witin', p:2}, 'ella':{mi:'witin', p:2},
+  'nosotros':{mi:'yang nani', p:0}, 'nosotras':{mi:'yang nani', p:0}, 'ustedes':{mi:'man nani', p:1},
+  'ellos':{mi:'witin nani', p:2}, 'ellas':{mi:'witin nani', p:2}
+};
+var COPULA = {soy:0, estoy:0, eres:1, 'estás':1, estas:1, es:2, 'está':2, somos:0, estamos:0, son:2, 'están':2, estan:2};
+var PREGUNTAS = {que:'dia', donde:'anira', cuando:'ahkia', como:'nahki', quien:'ya', cuantos:'an', cuantas:'an', cual:'ani', cuales:'ani'};
+var LUGAR = [   // preposiciones de lugar del material (pág. 28)
+  ['encima de','purara'], ['sobre','purara'], ['debajo de','munhtara'], ['dentro de','bilara'], ['fuera de','latara'],
+  ['delante de','mawanra'], ['enfrente de','mawanra'], ['detras de','ninara'], ['al lado de','tnayara'], ['junto a','tnayara'],
+  ['junto al','tnayara'], ['entre','midilra'], ['en','ra'], ['a','ra'], ['al','ra'], ['hacia','ra'], ['con','wal'], ['desde','wina']
+];
+var NUMEROS = {uno:'kumi', una:'kumi', dos:'wal', tres:'yumhpa', cuatro:'walhwal', cinco:'matsip'};
+var CANTIDAD = {muchos:'ailal', muchas:'ailal', pocos:'wiria', pocas:'wiria', poco:'wiria'};
+var SALTAR = ['el','la','los','las','un','unos','unas','lo','del','mi','mis','tu','tus','su','sus','me','te','se','le','les','nos','de','para','que','muy','pero','o','e','por','favor'];
+
+// Traduce un sintagma nominal ya separado en palabras normalizadas
+function traducirNombre(n, idx){
+  var piezas = [], i = 0;
+  while(i < n.length){
+    var hallado = null, largo = 0;
+    for(var L = Math.min(5, n.length - i); L >= 1 && !hallado; L--){
+      var clave = n.slice(i, i + L).join(' ');
+      if(L === 1 && SALTAR.indexOf(n[i]) >= 0) break;
+      if(idx[clave]){ hallado = idx[clave]; largo = L; }
+    }
+    var plural = false;
+    if(!hallado && SALTAR.indexOf(n[i]) < 0){
+      var w = n[i], sing = w.replace(/es$/,''), sing2 = w.replace(/s$/,'');
+      if(w.length > 3 && idx[sing2])     { hallado = idx[sing2]; largo = 1; plural = true; }
+      else if(w.length > 4 && idx[sing]) { hallado = idx[sing]; largo = 1; plural = true; }
+    }
+    if(hallado){ piezas.push({es:n.slice(i, i + largo).join(' '), mi:formaMiskito(hallado) + (plural ? ' nani' : ''), f:true}); i += largo; }
+    else { if(SALTAR.indexOf(n[i]) < 0) piezas.push({es:n[i], mi:'', f:false}); i++; }
+  }
+  return piezas;
+}
+
+function traducirOracion(texto, idx, verbos){
+  var esPregunta = /[?¿]/.test(texto);
+  var tok = tokensDe(texto), n = tok.map(sinAcento), s = n.join(' ');
+  var m, piezasNombre;
+
+  // Plantillas tomadas de ejemplos del material
+  if((m = s.match(/^(?:yo )?me llamo (.+)$/))){
+    var nombre = tok.slice(tok.length - m[1].split(' ').length).map(function(w){ return w.charAt(0).toUpperCase() + w.slice(1); }).join(' ');
+    return {mi:'Yang nini ba ' + nombre, piezas:[{es:'me llamo', mi:'yang nini ba', f:true}], regla:'Yang nini ba … (yo me llamo …)'};
+  }
+  if((m = s.match(/^(?:yo )?tengo (\S+) anos$/))){
+    var num = NUMEROS[m[1]] || m[1];
+    return {mi:'Yang ' + num + ' mani brisna', piezas:[{es:'tengo … años', mi:'yang … mani brisna', f:true}], regla:'Yang … mani brisna (yo tengo … años)'};
+  }
+  if((m = s.match(/^(no )?(?:a (?:mi|ti|usted) )?(me|te|le) gusta(?:n)? (.+)$/))){
+    piezasNombre = traducirNombre(m[3].split(' '), idx);
+    var obj = piezasNombre.map(function(p){ return p.f ? p.mi : '[' + p.es + ']'; }).join(' ');
+    var fin = m[1] ? 'laik apia' : (m[2] === 'me' ? 'laiksna' : 'laiksma');
+    return {mi:obj + ' ' + fin + (esPregunta ? '?' : ''), piezas:piezasNombre.concat([{es:'gusta', mi:fin, f:true}]),
+      regla:'objeto + laiksna / laiksma (me gusta / te gusta)'};
+  }
+  if((m = s.match(/^(?:me|te|le) duele(?:n)? (.+)$/))){
+    piezasNombre = traducirNombre(m[1].split(' '), idx);
+    var parte = piezasNombre.map(function(p){ return p.f ? p.mi : '[' + p.es + ']'; }).join(' ');
+    return {mi:parte + ' klauhan' + (esPregunta ? '?' : ''), piezas:piezasNombre.concat([{es:'duele', mi:'klauhan', f:true}]),
+      regla:'parte del cuerpo + klauhan (dolor de …, como «Lal klauhan»)'};
+  }
+
+  // Análisis general
+  var tiempo = [], sujeto = null, pregunta = '', verbo = null, copula = null, negar = false, hay = false;
+  var partes = [], pendiente = '', piezas = [], i, j;
+  for(i = 0; i < n.length; i++){
+    var w = n[i], wa = tok[i];
+    if(w === 'no'){ negar = true; continue; }
+    if(esPregunta && w === 'por' && n[i+1] === 'que'){ pregunta = 'diakan'; i++; continue; }
+    if(esPregunta && PREGUNTAS[w] && !pregunta && !verbo){ pregunta = PREGUNTAS[w]; continue; }
+    if(PRONOMBRES[wa] || (PRONOMBRES[w] && w !== 'el' && w !== 'tu')){ sujeto = PRONOMBRES[wa] || PRONOMBRES[w]; piezas.push({es:wa, mi:sujeto.mi, f:true}); continue; }
+    if(w === 'hay'){ hay = true; continue; }
+    if(COPULA[wa] !== undefined && !(wa === 'esta' && i === 0)){ copula = COPULA[wa]; continue; }
+    if(!verbo && (verbos.formas[wa] || verbos.formas[w])){
+      var v = verbos.formas[wa] || verbos.formas[w];
+      if(v.inf === 'ir' && n[i+1] === 'a' && verbos.infinitivos[(n[i+2] || '').replace(/se$/,'')]){   // voy a comer → futuro
+        var inf = n[i+2].replace(/se$/,'');
+        verbo = {mi:verbos.infinitivos[inf], tiempo:'futuro', persona:v.persona, plural:v.plural, es:tok.slice(i, i+3).join(' ')};
+        i += 2; continue;
+      }
+      verbo = {mi:v.mi, tiempo:v.tiempo, persona:v.persona, plural:v.plural, es:wa}; continue;
+    }
+    if(verbo && verbos.infinitivos[w.replace(/se$/,'')]){            // quiero comer → piaia want…
+      var mInf = verbos.infinitivos[w.replace(/se$/,'')].toLowerCase();
+      partes.push(mInf); piezas.push({es:wa, mi:mInf, f:true}); continue;
+    }
+    // Preposiciones de lugar
+    var prep = null;
+    for(j = 0; j < LUGAR.length && !prep; j++){
+      var lp = LUGAR[j][0].split(' ');
+      if(n.slice(i, i + lp.length).join(' ') === LUGAR[j][0]) prep = {mi:LUGAR[j][1], largo:lp.length};
+    }
+    if(prep && !(prep.largo === 1 && idxTieneFraseDesde(n, i, idx))){ pendiente = prep.mi; i += prep.largo - 1; continue; }
+    if(w === 'y'){ partes.push('an'); continue; }
+    if(NUMEROS[w] || /^\d+$/.test(w)){ partes.push({numero:NUMEROS[w] || w}); piezas.push({es:wa, mi:NUMEROS[w] || w, f:true}); continue; }
+    if(CANTIDAD[w]){ partes.push({numero:CANTIDAD[w]}); piezas.push({es:wa, mi:CANTIDAD[w], f:true}); continue; }
+    // Nombre o adjetivo (busca primero frases de varias palabras)
+    var hallado = null, largo = 0;
+    for(var L = Math.min(5, n.length - i); L >= 1 && !hallado; L--){
+      var clave = n.slice(i, i + L).join(' ');
+      if(L === 1 && SALTAR.indexOf(w) >= 0) break;     // «el», «tu», «mi»: artículos y posesivos
+      if(idx[clave]){ hallado = idx[clave]; largo = L; }
+    }
+    var plural = false;
+    if(!hallado && SALTAR.indexOf(w) < 0){
+      var sing = w.replace(/es$/,''), sing2 = w.replace(/s$/,'');
+      if(w.length > 3 && idx[sing2]){ hallado = idx[sing2]; largo = 1; plural = true; }
+      else if(w.length > 4 && idx[sing]){ hallado = idx[sing]; largo = 1; plural = true; }
+    }
+    if(hallado){
+      var texto2 = formaMiskito(hallado) + (plural ? ' nani' : '');
+      if(hallado.cat === 'tiempo'){ tiempo.push(texto2); }
+      else {
+        if(pendiente){ texto2 += ' ' + pendiente; pendiente = ''; }
+        partes.push(texto2);
+      }
+      piezas.push({es:tok.slice(i, i + largo).join(' '), mi:texto2, f:true});
+      i += largo - 1; continue;
+    }
+    if(SALTAR.indexOf(w) >= 0) continue;
+    partes.push('[' + wa + ']' + (pendiente ? ' ' + pendiente : '')); pendiente = '';
+    piezas.push({es:wa, mi:'', f:false});
+  }
+
+  // Los números y cantidades van después del nombre (Tuktan yumhpa bara sa)
+  var orden = [];
+  partes.forEach(function(p){
+    if(typeof p === 'object'){ orden.push({numero:p.numero}); return; }
+    var ultimo = orden[orden.length - 1];
+    if(ultimo && ultimo.numero !== undefined && !ultimo.usado){
+      orden.pop(); orden.push(p.replace(/ nani$/,'') + ' ' + ultimo.numero);
+    } else orden.push(p);
+  });
+  orden = orden.map(function(p){ return typeof p === 'object' ? p.numero : p; });
+
+  var salida = [], regla;
+  if(pregunta) salida.push(pregunta);
+  salida = salida.concat(tiempo);
+  if(sujeto) salida.push(sujeto.mi);
+  if(hay){
+    salida = salida.concat(orden);
+    salida.push(negar ? 'apia' : (orden.join(' ').match(/ (kumi|wal|yumhpa|walhwal|matsip|\d+)$/) ? 'bara sa' : 'sa'));
+    regla = 'nombre + cantidad + bara sa (hay …)';
+  } else if(copula !== null){
+    var persona = sujeto ? sujeto.p : copula;
+    if(!sujeto && orden.length > 1){ salida.push(orden.shift() + ' ba'); persona = 2; }
+    salida = salida.concat(orden);
+    salida.push(negar ? 'apia' : KAIA[persona]);
+    regla = 'sujeto + ba + cómo es o dónde está + sa (es / está)';
+  } else {
+    salida = salida.concat(orden);
+    if(verbo){
+      var forma = conjugar(verbo.mi, verbo.tiempo, sujeto ? sujeto.p : verbo.persona);
+      // nosotros / ustedes sin sujeto escrito (en 3.ª persona el sujeto suele ser un nombre)
+      if(verbo.plural && !sujeto && verbo.persona < 2) salida.splice((pregunta ? 1 : 0) + tiempo.length, 0, ['yang nani','man nani'][verbo.persona]);
+      salida.push(forma);
+      piezas.push({es:verbo.es, mi:forma, f:true});
+    }
+    if(negar) salida.push('apia');
+    regla = verbo ? 'tiempo + sujeto + complementos + verbo al final' + (negar ? ' + apia' : '') : 'palabra por palabra';
+  }
+  var mi = salida.join(' ').replace(/\s+/g,' ').trim();
+  if(mi) mi = mi.charAt(0).toUpperCase() + mi.slice(1) + (esPregunta ? '?' : '');
+  return {mi:mi, piezas:piezas, regla:regla};
+}
+function idxTieneFraseDesde(n, i, idx){   // «a» o «en» al inicio de una frase del diccionario
+  for(var L = Math.min(5, n.length - i); L >= 2; L--){ if(idx[n.slice(i, i + L).join(' ')]) return true; }
+  return false;
+}
+// Traduce un texto completo: cada oración o frase por separado
+function traducirReglas(texto){
+  var idx = indicePalabras(), verbos = indiceVerbos();
+  var trozos = texto.match(/[^,.;!?¡¿]*[¿¡]?[^,.;!?]+[,.;!?]*/g) || [texto];
+  var salida = [], piezas = [], reglas = [], conocidas = 0, total = 0;
+  trozos.forEach(function(t){
+    var limpio = t.trim(); if(!limpio) return;
+    var signo = (limpio.match(/[,.;!]+$/) || [''])[0];
+    var exacta = buscarFraseExacta(limpio);
+    if(exacta){
+      salida.push(exacta.mi.replace(/…/g,'') + signo);
+      piezas.push({es:limpio.replace(/[¿?¡!.,;]/g,''), mi:exacta.mi, f:true}); conocidas++; total++;
+      reglas.push('frase del material');
+      return;
+    }
+    var r = traducirOracion(limpio, idx, verbos);
+    if(r.mi) salida.push(r.mi.charAt(0).toUpperCase() + r.mi.slice(1) + signo);
+    piezas = piezas.concat(r.piezas);
+    r.piezas.forEach(function(p){ total++; if(p.f) conocidas++; });
+    if(r.regla && reglas.indexOf(r.regla) < 0) reglas.push(r.regla);
+  });
+  return {mi:salida.join(' '), piezas:piezas, reglas:reglas, faltan:piezas.filter(function(p){ return !p.f; }).map(function(p){ return p.es; }),
+    completo: total > 0 && conocidas === total};
+}
+
+function mostrarResultado(r){
+  ultimo = r;
+  document.getElementById('panelResultado').classList.remove('oculto');
+  document.getElementById('resMiskito').textContent = r.mi || '—';
+  document.getElementById('resChip').innerHTML = chipEstado(r.estado) + (r.origen ? ' <span class="nota">'+esc(r.origen)+'</span>' : '');
+  document.getElementById('resRetro').innerHTML = r.retro ? '<b>Dice:</b> ' + esc(r.retro) : '';
+  document.getElementById('resNota').textContent = r.nota || '';
+  document.getElementById('resPalabras').innerHTML = (r.palabras || []).map(function(p){
+    return p.f ? '<span class="palabra">'+esc(p.es)+' → <b>'+esc(p.mi)+'</b></span>'
+               : '<span class="palabra falta">'+esc(p.es)+' → ?</span>';
+  }).join('');
+  document.getElementById('btnEscucharMi').disabled = !r.mi;
+  document.getElementById('btnGuardarFrase').classList.toggle('oculto', !r.mi || r.estado === 'f' || r.estado === 'r' || r.estado === 'mep');
+  document.getElementById('panelResultado').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function traducir(){
+  var es = txtEs.value.trim();
+  if(!es){ estado.textContent = 'Escribe o di una frase primero.'; return; }
+  detenerTodo();
+  estado.textContent = '';
+  var exacta = buscarFraseExacta(es);
+  if(exacta){
+    mostrarResultado({es:es, mi:exacta.mi, estado:exacta.estado, origen:'Frase del material', id:exacta.id});
+    escucharMiskito(exacta.id, exacta.mi);
+    return;
+  }
+  var r = traducirReglas(es), id = idFrase(es);
+  mostrarResultado({es:es, mi:r.mi, estado:'reglas', id:id, palabras:r.piezas,
+    origen: r.completo ? 'Todas las palabras se encontraron' : 'Faltan palabras',
+    nota: 'Cómo se armó: ' + r.reglas.join(' · ') + '.' +
+      (r.faltan.length ? ' Sin traducir: ' + r.faltan.join(', ') + '. Puedes guardarla y corregirla en «Mis frases».' : '')});
+  if(r.mi) escucharMiskito(id, r.mi);
+}
+document.getElementById('btnTraducir').addEventListener('click', traducir);
+txtEs.addEventListener('keydown', function(e){ if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); traducir(); } });
+document.getElementById('btnEscucharMi').addEventListener('click', function(){ if(ultimo) escucharMiskito(ultimo.id, ultimo.mi); });
+document.getElementById('btnEscucharEs').addEventListener('click', function(){ if(ultimo) decir(ultimo.es, 'es-traducir'); });
+document.getElementById('btnGuardarFrase').addEventListener('click', function(){
+  if(!ultimo || !ultimo.mi) return;
+  if(!misFrases.some(function(f){ return idFrase(f.es) === idFrase(ultimo.es); })){
+    misFrases.push({es:ultimo.es, mi:ultimo.mi, estado:ultimo.estado});
+    guardar('mq_misfrases', misFrases);
+  }
+  estado.textContent = '⭐ Guardada en «Frases → Mis frases». Ahí se puede corregir y grabar.';
+});
+
+/* ---------- Documentos (Word y texto) ---------- */
+var doc = null;          // {tipo:'texto', nombre, datos}
+var docResultado = null; // {parrafos:[{espanol, miskito}], estado, notas}
+var estadoDoc = document.getElementById('estadoDoc');
+
+document.getElementById('btnSubir').addEventListener('click', function(){ document.getElementById('archivoDoc').click(); });
+document.getElementById('archivoDoc').addEventListener('change', function(e){ cargarArchivo(e.target.files[0]); e.target.value = ''; });
+
+function cargarArchivo(f){
+  if(!f) return;
+  quitarDoc();
+  var nombre = f.name || 'archivo', ext = nombre.toLowerCase().split('.').pop(), tarea;
+  if(ext === 'docx') tarea = f.arrayBuffer().then(textoDocx);
+  else if(ext === 'txt' || /^text\//.test(f.type)) tarea = f.text();
+  else if(ext === 'doc') return avisoDoc('Los archivos .doc antiguos no se pueden leer. En Word, usa «Guardar como» .docx.');
+  else return avisoDoc('Esta versión solo lee Word (.docx) y texto (.txt). Para fotos y PDF usa la versión con inteligencia artificial.');
+  estadoDoc.textContent = '⏳ Abriendo ' + nombre + '…';
+  tarea.then(function(t){
+    doc = {tipo:'texto', nombre:nombre, datos:t};
+    document.getElementById('docNombre').textContent = '📝 ' + nombre;
+    document.getElementById('docVista').classList.remove('oculto');
+    document.getElementById('docTextoCaja').classList.remove('oculto');
+    document.getElementById('docTexto').value = t.trim();
+    estadoDoc.textContent = t.trim() ? 'Listo. Toca «Traducir documento».' : '⚠️ No se encontró texto en el archivo.';
+  }).catch(function(){ avisoDoc('No se pudo abrir el archivo.'); });
+}
+function avisoDoc(m){ estadoDoc.textContent = '⚠️ ' + m; }
+function quitarDoc(){
+  doc = null; docResultado = null;
+  ['docVista','docTextoCaja','docImg','panelDoc'].forEach(function(id){ document.getElementById(id).classList.add('oculto'); });
+  document.getElementById('docTexto').value = '';
+  estadoDoc.textContent = '';
+}
+document.getElementById('btnQuitarDoc').addEventListener('click', quitarDoc);
+
+// Lee el texto de un .docx (es un ZIP) sin bibliotecas
+function textoDocx(buf){
+  var dv = new DataView(buf), bytes = new Uint8Array(buf), fin = -1;
+  for(var i = buf.byteLength - 22; i >= Math.max(0, buf.byteLength - 66000); i--){
+    if(dv.getUint32(i, true) === 0x06054b50){ fin = i; break; }
+  }
+  if(fin < 0) return Promise.reject(new Error('zip'));
+  var p = dv.getUint32(fin + 16, true), total = dv.getUint16(fin + 10, true);
+  for(var n = 0; n < total; n++){
+    var metodo = dv.getUint16(p + 10, true), tam = dv.getUint32(p + 20, true);
+    var lNom = dv.getUint16(p + 28, true), lExtra = dv.getUint16(p + 30, true), lCom = dv.getUint16(p + 32, true);
+    var local = dv.getUint32(p + 42, true);
+    var nombre = new TextDecoder().decode(bytes.subarray(p + 46, p + 46 + lNom));
+    if(nombre === 'word/document.xml'){
+      var ini = local + 30 + dv.getUint16(local + 26, true) + dv.getUint16(local + 28, true);
+      var datos = bytes.slice(ini, ini + tam);
+      var xml = metodo === 0 ? Promise.resolve(new TextDecoder().decode(datos))
+        : new Response(new Blob([datos]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
+      return xml.then(function(x){
+        return x.split(/<\/w:p>/).map(function(par){
+          var t = '', m, re = /<w:t[^>]*>([^<]*)<\/w:t>|<w:tab\/>|<w:br\/>/g;
+          while((m = re.exec(par))) t += m[1] !== undefined ? m[1] : ' ';
+          return t.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,'&').trim();
+        }).filter(Boolean).join('\n\n');
+      });
+    }
+    p += 46 + lNom + lExtra + lCom;
+  }
+  return Promise.reject(new Error('docx'));
+}
+
+document.getElementById('btnTraducirDoc').addEventListener('click', function(){
+  if(!doc) return;
+  detenerTodo();
+  var texto = document.getElementById('docTexto').value.trim();
+  if(!texto) return avisoDoc('No hay texto para traducir.');
+  var parrafos = texto.split(/\n\s*\n|\n/).map(function(t){ return t.trim(); }).filter(Boolean).map(function(es){
+    return {espanol:es, miskito:traducirReglas(es).mi};
+  });
+  estadoDoc.textContent = '';
+  mostrarDoc({parrafos:parrafos, estado:'reglas', origen:'Traductor por reglas',
+    notas:'Traducción aproximada: funciona mejor con oraciones cortas y sencillas. Las palabras entre [corchetes] no están en el diccionario.'});
+});
+function mostrarDoc(r){
+  docResultado = r;
+  document.getElementById('panelDoc').classList.remove('oculto');
+  document.getElementById('docChip').innerHTML = chipEstado(r.estado) + ' <span class="nota">' + esc(r.origen) + '</span>';
+  document.getElementById('docNota').textContent = r.notas || '';
+  document.getElementById('docParrafos').innerHTML = r.parrafos.map(function(p, i){
+    return '<div class="parrafo"><div class="es">' + esc(p.espanol) + '</div>' +
+      '<div class="mi">' + (p.miskito ? esc(p.miskito) : '—') + '</div>' +
+      '<div class="botones-parrafo">' +
+      (p.miskito ? '<button class="pill chico" data-parrafo="' + i + '" aria-label="Escuchar este párrafo en miskito" title="Miskito">🔊</button>' : '') +
+      '<button class="pill chico azul" data-parrafoes="' + i + '" aria-label="Escuchar este párrafo en español" title="Español">🗣️</button></div></div>';
+  }).join('');
+  document.getElementById('panelDoc').scrollIntoView({behavior:'smooth', block:'start'});
+}
+document.getElementById('docParrafos').addEventListener('click', function(e){
+  var b = e.target.closest('[data-parrafo],[data-parrafoes]'); if(!b || !docResultado) return;
+  if(b.dataset.parrafoes !== undefined){
+    var k = +b.dataset.parrafoes;
+    decir(docResultado.parrafos[k].espanol, 'doces-' + k); return;
+  }
+  var i = +b.dataset.parrafo;
+  decir(paraVoz(docResultado.parrafos[i].miskito), 'doc-' + i);
+});
+document.getElementById('btnEscucharDoc').addEventListener('click', function(){
+  if(!docResultado || !audioOn || !sintesis) return;
+  if(quienHabla === 'doc-todo'){ detenerTodo(); return; }
+  detenerTodo();
+  quienHabla = 'doc-todo';
+  var textos = docResultado.parrafos.map(function(p){ return paraVoz(p.miskito); }).filter(Boolean);
+  textos.forEach(function(t, i){
+    var u = new SpeechSynthesisUtterance(t);
+    if(vozEs){ u.voice = vozEs; u.lang = vozEs.lang.replace(/_/g,'-'); } else { u.lang = 'es-US'; }
+    u.rate = 0.9;
+    if(i === textos.length - 1) u.onend = function(){ if(quienHabla === 'doc-todo') quienHabla = null; };
+    sintesis.speak(u);
+  });
+});
+
+/* ---------- Correcciones ---------- */
+document.getElementById('btnExportar').addEventListener('click', function(){
+  var datos = JSON.stringify({correcciones:correcciones, misFrases:misFrases}, null, 2);
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([datos], {type:'application/json'}));
+  a.download = 'correcciones-miskito.json'; a.click();
+});
+document.getElementById('btnImportar').addEventListener('click', function(){ document.getElementById('archivoImportar').click(); });
+document.getElementById('archivoImportar').addEventListener('change', function(e){
+  var f = e.target.files[0]; if(!f) return;
+  f.text().then(function(t){
+    var d = JSON.parse(t);
+    Object.assign(correcciones, d.correcciones || {});
+    (d.misFrases || []).forEach(function(m){ if(!misFrases.some(function(x){ return idFrase(x.es) === idFrase(m.es); })) misFrases.push(m); });
+    guardar('mq_correcciones', correcciones); guardar('mq_misfrases', misFrases);
+    alert('Correcciones importadas.');
+  }).catch(function(){ alert('El archivo no es válido.'); });
+});
+
+/* ---------- Contenido para imprimir y PDF ---------- */
+var ESTADO_TXT = {mep:'Material MEP', f:'fuente', r:'revisada', ia:'IA aproximada', v:'por verificar', reglas:'por reglas, aproximada'};
+function contenidoFicha(seccion){
+  var titulo, lineas = [];
+  if(seccion === 'traducir'){
+    titulo = 'Traducción español – miskito';
+    if(ultimo){
+      lineas.push('Español: ' + ultimo.es);
+      lineas.push('Miskito: ' + (ultimo.mi || '—'));
+      if(ultimo.retro) lineas.push('Dice: ' + ultimo.retro);
+      lineas.push('Estado: ' + (ESTADO_TXT[ultimo.estado] || ''));
+      if(ultimo.nota) lineas.push(ultimo.nota);
+    }
+  } else if(seccion === 'documentos'){
+    titulo = 'Documento traducido al miskito' + (doc ? ': ' + doc.nombre : '');
+    if(docResultado){
+      docResultado.parrafos.forEach(function(p){
+        lineas.push('Español: ' + p.espanol);
+        lineas.push('Miskito: ' + (p.miskito || '—'));
+      });
+      lineas.push('Estado: ' + (ESTADO_TXT[docResultado.estado] || ''));
+      if(docResultado.notas) lineas.push(docResultado.notas);
+    }
+  } else if(seccion === 'imagenes'){
+    titulo = 'Imágenes de la vida diaria en miskito';
+    imagenesActuales().forEach(function(im){
+      lineas.push(im.es + '  —  ' + (im.mi ? im.mi + (im.pr ? '  [' + im.pr + ']' : '') : '_______________') +
+        (im.mi && im.estado !== 'f' ? '  (' + ESTADO_TXT[im.estado] + ')' : ''));
+    });
+  } else if(seccion === 'frases'){
+    var cat = categoriasVisibles().find(function(c){ return c.id === catActual; });
+    titulo = 'Frases: ' + (cat ? cat.nombre : '');
+    todasLasFrases().filter(function(f){ return f.cat === catActual; }).forEach(function(f){
+      lineas.push(f.es + '  —  ' + (f.mi || '_______________') + (f.mi && f.estado !== 'f' ? '  (' + ESTADO_TXT[f.estado] + ')' : ''));
+    });
+  } else {
+    titulo = 'Diccionario español – miskito';
+    todasLasFrases().filter(function(f){ return f.mi; }).sort(function(a,b){ return a.es.localeCompare(b.es,'es'); })
+      .forEach(function(f){ lineas.push(f.es + '  —  ' + f.mi); });
+  }
+  return {titulo:titulo, lineas:lineas, autoria:'Elaborado por: Alberto Jiménez Ruiz — Asesor Regional de Matemática · DAP-DRE-Cartago 2026'};
+}
+document.querySelectorAll('[data-imprimir]').forEach(function(b){
+  b.addEventListener('click', function(){
+    var c = contenidoFicha(b.dataset.imprimir);
+    document.getElementById('zonaImpresion').innerHTML = '<h1>'+esc(c.titulo)+'</h1>' +
+      c.lineas.map(function(l){ return '<p class="linea">'+esc(l)+'</p>'; }).join('') +
+      '<p style="margin-top:14pt;font-size:10pt">'+esc(c.autoria)+'</p>';
+    window.print();
+  });
+});
+
+/* PDF propio: Helvetica (equivalente a Arial) 12 pt, sin bibliotecas */
+function anchoTexto(t, tam){
+  var w = 0;
+  for(var i=0;i<t.length;i++){
+    var c = t[i];
+    if(c === ' ') w += 0.278;
+    else if('iljI.,;:!|\'’'.indexOf(c) >= 0) w += 0.24;
+    else if('mwMW'.indexOf(c) >= 0) w += 0.85;
+    else if(c >= 'A' && c <= 'Z') w += 0.68;
+    else w += 0.54;
+  }
+  return w * tam;
+}
+function partirLineas(t, ancho, tam){
+  var palabras = t.split(' '), lineas = [], actual = '';
+  palabras.forEach(function(p){
+    var prueba = actual ? actual + ' ' + p : p;
+    if(anchoTexto(prueba, tam) > ancho && actual){ lineas.push(actual); actual = p; }
+    else actual = prueba;
+  });
+  if(actual) lineas.push(actual);
+  return lineas;
+}
+function aWinAnsi(t){
+  var mapa = {'—':151,'–':150,'‘':145,'’':146,'“':147,'”':148,'…':133,'·':183};
+  var s = '';
+  for(var i=0;i<t.length;i++){
+    var ch = t[i], code = t.charCodeAt(i);
+    if(mapa[ch]) code = mapa[ch];
+    else if(code > 255) continue; // quita emojis y otros símbolos
+    var c = String.fromCharCode(code);
+    if(c === '(' || c === ')' || c === '\\') c = '\\' + c;
+    s += c;
+  }
+  return s;
+}
+function crearPDF(c){
+  var W = 612, H = 792, M = 56, tam = 12, inter = 17, anchoUtil = W - 2*M;
+  var paginas = [], ops = [], y = H - M;
+  function nuevaPagina(){ if(ops.length) paginas.push(ops.join('\n')); ops = []; y = H - M; }
+  function escribir(t, fuente, t2){
+    partirLineas(t, anchoUtil, t2).forEach(function(l){
+      if(y < M + inter){ nuevaPagina(); }
+      ops.push('BT /' + fuente + ' ' + t2 + ' Tf ' + M + ' ' + y.toFixed(1) + ' Td (' + aWinAnsi(l) + ') Tj ET');
+      y -= t2 === tam ? inter : t2 + 6;
+    });
+  }
+  escribir(c.titulo, 'F2', 16); y -= 8;
+  c.lineas.forEach(function(l){ escribir(l, 'F1', tam); y -= 4; });
+  y -= 12; escribir(c.autoria, 'F1', 10);
+  nuevaPagina();
+
+  var objs = [];
+  objs[1] = '<< /Type /Catalog /Pages 2 0 R >>';
+  objs[3] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
+  objs[4] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
+  var kids = [];
+  paginas.forEach(function(contenido){
+    var nPag = objs.length, nCont = nPag + 1;
+    objs[nPag] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + W + ' ' + H + '] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ' + nCont + ' 0 R >>';
+    objs[nCont] = '<< /Length ' + contenido.length + ' >>\nstream\n' + contenido + '\nendstream';
+    kids.push(nPag + ' 0 R');
+  });
+  objs[2] = '<< /Type /Pages /Kids [' + kids.join(' ') + '] /Count ' + kids.length + ' >>';
+
+  var pdf = '%PDF-1.4\n%\xE2\xE3\xCF\xD3\n', offs = [];
+  for(var i=1;i<objs.length;i++){ offs[i] = pdf.length; pdf += i + ' 0 obj\n' + objs[i] + '\nendobj\n'; }
+  var xref = pdf.length;
+  pdf += 'xref\n0 ' + objs.length + '\n0000000000 65535 f \n';
+  for(i=1;i<objs.length;i++) pdf += ('0000000000' + offs[i]).slice(-10) + ' 00000 n \n';
+  pdf += 'trailer\n<< /Size ' + objs.length + ' /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF';
+  var bytes = new Uint8Array(pdf.length);
+  for(i=0;i<pdf.length;i++) bytes[i] = pdf.charCodeAt(i) & 255;
+  return new Blob([bytes], {type:'application/pdf'});
+}
+document.querySelectorAll('[data-pdf]').forEach(function(b){
+  b.addEventListener('click', function(){
+    var c = contenidoFicha(b.dataset.pdf);
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(crearPDF(c));
+    a.download = c.titulo.replace(/[^\wáéíóúñü ]+/gi,'').trim().replace(/\s+/g,'-').toLowerCase() + '.pdf';
+    document.body.appendChild(a); a.click(); a.remove();
+  });
+});
+
+})();
+</script>
+</body>
+</html>
