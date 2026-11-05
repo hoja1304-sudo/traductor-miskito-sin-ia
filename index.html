@@ -89,6 +89,11 @@ textarea{width:100%;min-height:110px;border-radius:14px;border:2px solid var(--l
 .editor{display:flex;gap:6px;flex-wrap:wrap}
 .editor input{flex:1 1 150px;min-height:44px;border-radius:12px;border:2px solid var(--line);background:var(--bg);padding:6px 10px}
 
+.menu-frases .tarjeta-inicio{min-height:96px}
+.menu-frases .tarjeta-inicio small{font-size:.85rem;opacity:.9}
+.cabeza-categoria{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:10px}
+.cabeza-categoria h3{margin:0;font-size:1.35rem;flex:1 1 200px}
+
 /* Diccionario */
 .buscador{width:100%;min-height:50px;border-radius:999px;border:2px solid var(--line);background:var(--panel);padding:10px 18px;font-size:1.05rem}
 table{width:100%;border-collapse:collapse;margin-top:12px}
@@ -245,12 +250,18 @@ label{display:block;font-weight:600;margin:10px 0 4px}
     <h2>💬 Frases</h2>
     <button class="pill sec chico" data-instr="frases">🔊 Escuchar instrucciones</button>
   </div>
-  <div class="pestanas" id="pestanasFrases"></div>
-  <p class="nota" id="notaCategoria"></p>
-  <div class="lista-frases" id="listaFrases"></div>
-  <div class="fila">
-    <button class="pill sec chico" data-imprimir="frases">🖨️ Imprimir</button>
-    <button class="pill sec chico" data-pdf="frases">⬇️ Descargar PDF</button>
+  <div class="rejilla menu-frases" id="pestanasFrases"></div>
+  <div id="vistaCategoria" class="oculto">
+    <div class="cabeza-categoria">
+      <button class="pill sec" id="btnVolverFrases">⬅ Volver a Frases</button>
+      <h3 id="tituloCategoria"></h3>
+    </div>
+    <p class="nota" id="notaCategoria"></p>
+    <div class="lista-frases" id="listaFrases"></div>
+    <div class="fila">
+      <button class="pill sec chico" data-imprimir="frases">🖨️ Imprimir</button>
+      <button class="pill sec chico" data-pdf="frases">⬇️ Descargar PDF</button>
+    </div>
   </div>
 </main>
 
@@ -999,7 +1010,7 @@ var INSTRUCCIONES = {
   traducir:'Toca el botón Hablar y di una frase corta en español. También puedes escribirla. Luego toca Traducir al miskito. Esta versión funciona sin internet.',
   documentos:'Toca Subir documento para elegir un archivo de Word o de texto. Luego toca Traducir documento. Cada párrafo aparece en español y en miskito.',
   imagenes:'Mira los dibujos. Toca un dibujo para escuchar la palabra en miskito. Toca En español para escuchar la frase en español.',
-  frases:'Elige un grupo de frases. Toca Escuchar para oír la frase en miskito. Una persona que hable miskito puede tocar Grabar para guardar su voz, o Corregir para arreglar la traducción.'
+  frases:'Toca un grupo para abrirlo. Toca Escuchar para oír la frase en miskito. Una persona que hable miskito puede tocar Grabar para guardar su voz, o Corregir para arreglar la traducción.'
 };
 document.querySelectorAll('[data-instr]').forEach(function(b){
   b.addEventListener('click', function(){ decir(INSTRUCCIONES[b.dataset.instr], 'instr-'+b.dataset.instr); });
@@ -1093,7 +1104,7 @@ function ir(id){
   document.querySelectorAll('.seccion').forEach(function(s){ s.classList.toggle('oculto', s.id !== id); });
   seccionActual = id;
   window.scrollTo(0,0);
-  if(id === 'frases') pintarFrases();
+  if(id === 'frases'){ catActual = null; pintarFrases(); }
   if(id === 'diccionario'){ pintarDiccionario(); llenarVerbos(); }
   if(id === 'imagenes') pintarImagenes();
   if(id === 'traducir') ofrecerMicrofono();
@@ -1104,7 +1115,7 @@ document.addEventListener('click', function(e){
 });
 
 /* ---------- Frases ---------- */
-var catActual = 'saludos';
+var catActual = null;   // null = menú de grupos
 function categoriasVisibles(){
   var cats = CATEGORIAS.slice();
   if(misFrases.length) cats.push({id:'mias', nombre:'Mis frases', ico:'⭐'});
@@ -1123,10 +1134,19 @@ function esc(t){ return String(t).replace(/[&<>"']/g, function(c){ return {'&':'
 
 function pintarFrases(){
   var pest = document.getElementById('pestanasFrases');
-  pest.innerHTML = categoriasVisibles().map(function(c){
-    return '<button class="pill chico'+(c.id===catActual?' activa':'')+'" data-cat="'+c.id+'">'+c.ico+' '+esc(c.nombre)+'</button>';
-  }).join('');
-  var cat = categoriasVisibles().find(function(c){ return c.id === catActual; }) || CATEGORIAS[0];
+  var cat = categoriasVisibles().find(function(c){ return c.id === catActual; });
+  pest.classList.toggle('oculto', !!cat);
+  document.getElementById('vistaCategoria').classList.toggle('oculto', !cat);
+  if(!cat){
+    var COLORES = ['#0f7c8c','#c4502a','#23874f','#7d4cc4','#2f62d9','#b45309'];
+    pest.innerHTML = categoriasVisibles().map(function(c, i){
+      var total = todasLasFrases().filter(function(f){ return f.cat === c.id; }).length;
+      return '<button class="tarjeta-inicio" style="background:' + COLORES[i % COLORES.length] + '" data-cat="' + c.id + '">' +
+        '<span class="ico">' + c.ico + '</span><b>' + esc(c.nombre) + '</b><small>' + total + (total === 1 ? ' frase' : ' frases y palabras') + '</small></button>';
+    }).join('');
+    return;
+  }
+  document.getElementById('tituloCategoria').textContent = cat.ico + ' ' + cat.nombre;
   document.getElementById('notaCategoria').textContent = cat.nota || '';
   var frases = todasLasFrases().filter(function(f){ return f.cat === catActual; });
   listarGrabadas().then(function(grabadas){
@@ -1148,7 +1168,10 @@ function pintarFrases(){
 }
 document.getElementById('pestanasFrases').addEventListener('click', function(e){
   var b = e.target.closest('[data-cat]'); if(!b) return;
-  catActual = b.dataset.cat; pintarFrases();
+  catActual = b.dataset.cat; detenerTodo(); pintarFrases(); window.scrollTo(0, 0);
+});
+document.getElementById('btnVolverFrases').addEventListener('click', function(){
+  catActual = null; detenerTodo(); pintarFrases(); window.scrollTo(0, 0);
 });
 document.getElementById('listaFrases').addEventListener('click', function(e){
   var b = e.target.closest('[data-acc]'); if(!b) return;
