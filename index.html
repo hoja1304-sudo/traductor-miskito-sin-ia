@@ -130,6 +130,14 @@ td .pill{min-height:44px;padding:4px 12px}
 [data-theme="dark"] .conjugar td.verbo{color:#7fd8e3}
 .conjugar select{min-height:48px;border-radius:12px;border:2px solid var(--line);background:var(--bg);padding:6px 12px;font-size:1rem}
 
+/* Permiso del micrófono */
+.modal-mic{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:120;display:flex;align-items:center;justify-content:center;padding:16px}
+.caja-mic{background:var(--panel);color:var(--ink);border-radius:22px;padding:22px 20px;max-width:420px;width:100%;box-shadow:0 12px 40px rgba(0,0,0,.35);text-align:center}
+.caja-mic h3{margin:6px 0 8px;font-size:1.3rem}
+.caja-mic ol{text-align:left;padding-left:22px}
+.caja-mic li{margin-bottom:6px}
+.ico-mic{font-size:44px;line-height:1}
+
 /* Ajustes */
 label{display:block;font-weight:600;margin:10px 0 4px}
 .campo{width:100%;min-height:48px;border-radius:12px;border:2px solid var(--line);background:var(--bg);padding:8px 12px}
@@ -335,6 +343,39 @@ label{display:block;font-weight:600;margin:10px 0 4px}
     </div>
   </div>
 </main>
+
+<!-- Permiso del micrófono -->
+<div class="modal-mic oculto" id="modalMic" role="dialog" aria-modal="true" aria-labelledby="tituloMic">
+  <div class="caja-mic">
+    <div id="micPedir">
+      <div class="ico-mic">🎙️</div>
+      <h3 id="tituloMic">¿Permitir el micrófono?</h3>
+      <p>Para escuchar lo que dices en español y traducirlo al miskito, el traductor necesita usar el micrófono.</p>
+      <p class="nota">Al tocar <b>Sí</b>, el navegador mostrará un aviso: toca <b>Permitir</b>. Solo se pide una vez.</p>
+      <div class="fila" style="justify-content:center">
+        <button class="pill verde" id="btnMicSi">Sí, permitir</button>
+        <button class="pill sec" id="btnMicNo">No, ahora no</button>
+      </div>
+    </div>
+    <div id="micBloqueado" class="oculto">
+      <div class="ico-mic">🔒</div>
+      <h3>El micrófono está bloqueado</h3>
+      <p>El navegador tiene bloqueado el micrófono para esta página. Para activarlo:</p>
+      <ol id="pasosDesbloqueo"></ol>
+      <div class="fila" style="justify-content:center">
+        <button class="pill" data-cerrar-mic>Entendido</button>
+      </div>
+    </div>
+    <div id="micNoDisponible" class="oculto">
+      <div class="ico-mic">🌐</div>
+      <h3>Abre el enlace en Chrome</h3>
+      <p id="textoNoDisponible"></p>
+      <div class="fila" style="justify-content:center">
+        <button class="pill" data-cerrar-mic>Entendido</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ============ AJUSTES ============ -->
 <main id="ajustes" class="contenedor seccion oculto">
@@ -1055,6 +1096,7 @@ function ir(id){
   if(id === 'frases') pintarFrases();
   if(id === 'diccionario'){ pintarDiccionario(); llenarVerbos(); }
   if(id === 'imagenes') pintarImagenes();
+  if(id === 'traducir') ofrecerMicrofono();
 }
 document.addEventListener('click', function(e){
   var b = e.target.closest('[data-ir]');
@@ -1441,13 +1483,69 @@ var estado = document.getElementById('estado');
 var btnHablar = document.getElementById('btnHablar');
 var Reconocedor = window.SpeechRecognition || window.webkitSpeechRecognition;
 var reco = null, escuchando = false;
-if(!Reconocedor){
-  btnHablar.disabled = true;
-  btnHablar.title = 'Este navegador no reconoce voz. Usa Chrome.';
+
+/* Permiso del micrófono: la página no puede darse permiso sola; explica, pide el permiso
+   del navegador al tocar «Sí» y, si se concede, empieza a escuchar de inmediato. */
+var dentroDeApp = /FBAN|FBAV|FB_IAB|Instagram|Messenger|Line\//i.test(navigator.userAgent);
+var esAndroid = /Android/i.test(navigator.userAgent), esIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+function estadoMicrofono(){
+  if(!navigator.permissions || !navigator.permissions.query) return Promise.resolve('prompt');
+  return navigator.permissions.query({name:'microphone'}).then(function(p){ return p.state; }, function(){ return 'prompt'; });
 }
+function abrirModalMic(tipo){
+  var m = document.getElementById('modalMic');
+  ['micPedir','micBloqueado','micNoDisponible'].forEach(function(id){ document.getElementById(id).classList.toggle('oculto', id !== tipo); });
+  if(tipo === 'micBloqueado'){
+    document.getElementById('pasosDesbloqueo').innerHTML = esAndroid
+      ? '<li>Toca el ícono a la izquierda de la dirección (candado o ajustes), arriba de la pantalla.</li><li>Toca <b>Permisos</b> y luego <b>Micrófono</b>.</li><li>Elige <b>Permitir</b> y recarga la página.</li>'
+      : esIOS
+      ? '<li>Toca <b>aA</b> o el ícono a la izquierda de la dirección.</li><li>Toca <b>Configuración del sitio web</b> y pon <b>Micrófono: Permitir</b>.</li><li>Recarga la página.</li>'
+      : '<li>Haz clic en el ícono a la izquierda de la dirección (candado o ajustes).</li><li>Busca <b>Micrófono</b> y elige <b>Permitir</b>.</li><li>Recarga la página.</li>';
+  }
+  if(tipo === 'micNoDisponible'){
+    document.getElementById('textoNoDisponible').textContent = dentroDeApp
+      ? 'El enlace se abrió dentro de otra aplicación (por ejemplo Facebook o Messenger), donde el micrófono no funciona. Toca los tres puntos ⋮ y elige «Abrir en Chrome» o «Abrir en el navegador».'
+      : 'Este navegador no reconoce la voz. Abre el enlace en Google Chrome. Mientras tanto, puedes escribir la frase en el cuadro.';
+  }
+  m.classList.remove('oculto');
+  var boton = m.querySelector('#' + tipo + ' .pill'); if(boton) boton.focus();
+}
+function cerrarModalMic(){ document.getElementById('modalMic').classList.add('oculto'); }
+function pedirMicrofono(){
+  cerrarModalMic();
+  guardar('mq_mic_preguntado', true);
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ empezarAEscuchar(); return; }
+  estado.textContent = 'El navegador mostrará un aviso: toca «Permitir».';
+  navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+    stream.getTracks().forEach(function(t){ t.stop(); });
+    estado.textContent = '✅ Micrófono permitido.';
+    empezarAEscuchar();
+  }).catch(function(){ abrirModalMic('micBloqueado'); estado.textContent = ''; });
+}
+// Al entrar a «Traducir» por primera vez, ofrece activar el micrófono
+function ofrecerMicrofono(){
+  if(leer('mq_mic_preguntado', false)) return;
+  if(!Reconocedor || dentroDeApp){ return; }
+  estadoMicrofono().then(function(s){ if(s === 'prompt') abrirModalMic('micPedir'); });
+}
+document.getElementById('btnMicSi').addEventListener('click', pedirMicrofono);
+document.getElementById('btnMicNo').addEventListener('click', function(){
+  cerrarModalMic(); guardar('mq_mic_preguntado', true);
+  estado.textContent = 'Puedes escribir la frase en el cuadro. Si cambias de idea, toca «Hablar».';
+});
+document.querySelectorAll('[data-cerrar-mic]').forEach(function(b){ b.addEventListener('click', cerrarModalMic); });
+document.getElementById('modalMic').addEventListener('keydown', function(e){ if(e.key === 'Escape') cerrarModalMic(); });
+
 btnHablar.addEventListener('click', function(){
-  if(!Reconocedor) return;
   if(escuchando){ reco.stop(); return; }
+  if(!Reconocedor || dentroDeApp){ abrirModalMic('micNoDisponible'); return; }
+  estadoMicrofono().then(function(s){
+    if(s === 'granted') empezarAEscuchar();
+    else if(s === 'denied') abrirModalMic('micBloqueado');
+    else abrirModalMic('micPedir');
+  });
+});
+function empezarAEscuchar(){
   detenerTodo();
   reco = new Reconocedor();
   reco.lang = 'es-US';
@@ -1460,13 +1558,24 @@ btnHablar.addEventListener('click', function(){
     txtEs.value = base + t;
   };
   reco.onstart = function(){ escuchando = true; btnHablar.classList.add('grabando'); btnHablar.textContent = '⏹️ Escuchando…'; estado.textContent = 'Habla ahora en español.'; };
-  reco.onerror = function(e){ estado.textContent = e.error === 'not-allowed' ? 'Permite el uso del micrófono para poder escuchar.' : 'No se escuchó bien. Intenta otra vez.'; };
+  reco.onerror = function(e){
+    if(e.error === 'not-allowed' || e.error === 'service-not-allowed'){
+      estadoMicrofono().then(function(s){
+        if(s === 'denied') abrirModalMic('micBloqueado');
+        else estado.textContent = '✅ Micrófono listo. Toca «Hablar» para empezar.';
+      });
+    } else if(e.error === 'network'){
+      estado.textContent = 'El reconocimiento de voz necesita internet. Revisa la conexión o escribe la frase.';
+    } else if(e.error !== 'aborted'){
+      estado.textContent = 'No se escuchó bien. Intenta otra vez.';
+    }
+  };
   reco.onend = function(){
     escuchando = false; btnHablar.classList.remove('grabando'); btnHablar.textContent = '🎙️ Hablar';
     if(txtEs.value.trim()){ estado.textContent = ''; traducir(); }
   };
-  reco.start();
-});
+  try{ reco.start(); }catch(err){ estado.textContent = 'Toca «Hablar» para empezar.'; }
+}
 document.getElementById('btnLimpiar').addEventListener('click', function(){
   txtEs.value = ''; estado.textContent = ''; document.getElementById('panelResultado').classList.add('oculto'); txtEs.focus();
 });
