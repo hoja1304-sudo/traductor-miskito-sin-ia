@@ -191,6 +191,7 @@ label{display:block;font-weight:600;margin:10px 0 4px}
 
   <div class="rejilla">
     <button class="tarjeta-inicio" style="background:#0f7c8c" data-ir="traducir"><span class="ico">🎙️</span><b>Traducir</b><span>Habla o escribe en español y escucha la traducción.</span></button>
+    <button class="tarjeta-inicio" style="background:#0b6e5f" data-ir="traducirmi"><span class="ico">🗣️</span><b>Traducir de miskito a español</b><span>Habla o escribe en miskito y escucha la traducción en español.</span></button>
     <button class="tarjeta-inicio" style="background:#c4502a" data-ir="frases"><span class="ico">💬</span><b>Frases</b><span>Frases de todos los días, con voz grabada.</span></button>
     <button class="tarjeta-inicio" style="background:#23874f" data-ir="diccionario"><span class="ico">📖</span><b>Diccionario</b><span>Busca palabras en español o en miskito.</span></button>
     <button class="tarjeta-inicio" style="background:#b45309" data-ir="imagenes"><span class="ico">🖼️</span><b>Imágenes</b><span>Dibujos de la vida diaria con su frase en miskito.</span></button>
@@ -239,6 +240,46 @@ label{display:block;font-weight:600;margin:10px 0 4px}
       <button class="pill sec chico" id="btnGuardarFrase">⭐ Guardar en «Mis frases»</button>
       <button class="pill sec chico" data-imprimir="traducir">🖨️ Imprimir</button>
       <button class="pill sec chico" data-pdf="traducir">⬇️ Descargar PDF</button>
+    </div>
+  </div>
+</main>
+
+<!-- ============ TRADUCIR DE MISKITO A ESPAÑOL ============ -->
+<main id="traducirmi" class="contenedor seccion oculto">
+  <div class="cabeza-seccion">
+    <button class="pill sec" data-ir="inicio">🏠 Inicio</button>
+    <h2>🗣️ Traducir de miskito a español</h2>
+    <button class="pill sec chico" data-instr="traducirmi">🔊 Escuchar instrucciones</button>
+  </div>
+
+  <div class="panel">
+    <label for="txtMi">Texto en miskito</label>
+    <textarea id="txtMi" placeholder="Toca «Hablar» y di una frase, o escríbela aquí. Ejemplo: Yang skul watla ra auna"></textarea>
+    <div class="fila">
+      <button class="pill coral" id="btnHablarMi">🎙️ Hablar</button>
+      <button class="pill" id="btnTraducirMi">➜ Traducir al español</button>
+      <button class="pill sec chico" id="btnLimpiarMi">Borrar</button>
+    </div>
+    <div class="estado" id="estadoMi" aria-live="polite"></div>
+    <p class="nota">Ningún navegador reconoce todavía la voz en miskito: el micrófono escucha sonidos y busca la palabra más parecida. Revisa el texto; si no es lo que dijiste, corrígelo y toca «Traducir al español».</p>
+  </div>
+
+  <div class="panel oculto" id="panelResultadoMi">
+    <div class="resultado">
+      <p class="etq">Español</p>
+      <div class="miskito-grande" id="resEspanol"></div>
+      <div class="fila" style="margin-top:0">
+        <button class="pill azul" id="btnOirEspanol">🗣️ Español</button>
+        <button class="pill" id="btnOirMiskito">🔊 Miskito</button>
+        <span id="resChipMi"></span>
+      </div>
+      <p class="nota" id="resNotaMi"></p>
+      <div class="palabras" id="resPalabrasMi"></div>
+    </div>
+    <div class="fila">
+      <button class="pill sec chico" id="btnGuardarFraseMi">⭐ Guardar en «Mis frases»</button>
+      <button class="pill sec chico" data-imprimir="traducirmi">🖨️ Imprimir</button>
+      <button class="pill sec chico" data-pdf="traducirmi">⬇️ Descargar PDF</button>
     </div>
   </div>
 </main>
@@ -361,7 +402,7 @@ label{display:block;font-weight:600;margin:10px 0 4px}
     <div id="micPedir">
       <div class="ico-mic">🎙️</div>
       <h3 id="tituloMic">¿Permitir el micrófono?</h3>
-      <p>Para escuchar lo que dices en español y traducirlo al miskito, el traductor necesita usar el micrófono.</p>
+      <p>Para escuchar lo que dices y traducirlo, el traductor necesita usar el micrófono.</p>
       <p class="nota">Al tocar <b>Sí</b>, el navegador mostrará un aviso: toca <b>Permitir</b>. Solo se pide una vez.</p>
       <div class="fila" style="justify-content:center">
         <button class="pill verde" id="btnMicSi">Sí, permitir</button>
@@ -406,6 +447,12 @@ label{display:block;font-weight:600;margin:10px 0 4px}
       <li><b>Diccionario:</b> busca las demás palabras entre unas 400 del material. Lo que no encuentra queda entre [corchetes].</li>
     </ol>
     <p class="nota">Funciona mejor con frases sencillas de la escuela y la casa. No adapta refranes ni ideas complejas: para eso existe la versión con inteligencia artificial.</p>
+  </div>
+
+  <div class="panel">
+    <h3 style="margin-top:0">Cómo traduce de miskito a español</h3>
+    <p>Usa las mismas palabras y reglas, pero al revés: busca la frase completa, reconoce las formas de los verbos y mueve el verbo final del miskito a su lugar en español.</p>
+    <p class="nota">Ningún navegador reconoce todavía la voz en miskito. Al hablar, escucha los sonidos como si fueran español y busca las palabras miskitas más parecidas. Por eso conviene revisar el texto antes de confiar en la traducción. Esa parte necesita internet; escribir funciona sin conexión.</p>
   </div>
 
   <div class="panel">
@@ -1008,6 +1055,7 @@ function escucharMiskito(id, texto){
 
 var INSTRUCCIONES = {
   traducir:'Toca el botón Hablar y di una frase corta en español. También puedes escribirla. Luego toca Traducir al miskito. Esta versión funciona sin internet.',
+  traducirmi:'Toca el botón Hablar y di una frase corta en miskito, o escríbela. Revisa que el texto sea lo que dijiste y corrígelo si hace falta. Luego toca Traducir al español.',
   documentos:'Toca Subir documento para elegir un archivo de Word o de texto. Luego toca Traducir documento. Cada párrafo aparece en español y en miskito.',
   imagenes:'Mira los dibujos. Toca un dibujo para escuchar la palabra en miskito. Toca En español para escuchar la frase en español.',
   frases:'Toca un grupo para abrirlo. Toca Escuchar para oír la frase en miskito. Una persona que hable miskito puede tocar Grabar para guardar su voz, o Corregir para arreglar la traducción.'
@@ -1107,7 +1155,7 @@ function ir(id){
   if(id === 'frases'){ catActual = null; pintarFrases(); }
   if(id === 'diccionario'){ pintarDiccionario(); llenarVerbos(); }
   if(id === 'imagenes') pintarImagenes();
-  if(id === 'traducir') ofrecerMicrofono();
+  if(id === 'traducir' || id === 'traducirmi'){ micDestino = id === 'traducirmi' ? 'mi' : 'es'; ofrecerMicrofono(); }
 }
 document.addEventListener('click', function(e){
   var b = e.target.closest('[data-ir]');
@@ -1506,6 +1554,12 @@ var estado = document.getElementById('estado');
 var btnHablar = document.getElementById('btnHablar');
 var Reconocedor = window.SpeechRecognition || window.webkitSpeechRecognition;
 var reco = null, escuchando = false;
+var txtMi = document.getElementById('txtMi'), btnHablarMi = document.getElementById('btnHablarMi'), estadoMi = document.getElementById('estadoMi');
+var micDestino = 'es';   // 'es' = Traducir · 'mi' = Traducir de miskito a español
+function destinoMic(){
+  return micDestino === 'mi' ? {txt:txtMi, btn:btnHablarMi, est:estadoMi, idioma:'miskito'}
+                             : {txt:txtEs, btn:btnHablar, est:estado, idioma:'español'};
+}
 
 /* Permiso del micrófono: la página no puede darse permiso sola; explica, pide el permiso
    del navegador al tocar «Sí» y, si se concede, empieza a escuchar de inmediato. */
@@ -1538,12 +1592,13 @@ function pedirMicrofono(){
   cerrarModalMic();
   guardar('mq_mic_preguntado', true);
   if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ empezarAEscuchar(); return; }
-  estado.textContent = 'El navegador mostrará un aviso: toca «Permitir».';
+  var salida = destinoMic().est;
+  salida.textContent = 'El navegador mostrará un aviso: toca «Permitir».';
   navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
     stream.getTracks().forEach(function(t){ t.stop(); });
-    estado.textContent = '✅ Micrófono permitido.';
+    salida.textContent = '✅ Micrófono permitido.';
     empezarAEscuchar();
-  }).catch(function(){ abrirModalMic('micBloqueado'); estado.textContent = ''; });
+  }).catch(function(){ abrirModalMic('micBloqueado'); salida.textContent = ''; });
 }
 // Al entrar a «Traducir» por primera vez, ofrece activar el micrófono
 function ofrecerMicrofono(){
@@ -1554,50 +1609,62 @@ function ofrecerMicrofono(){
 document.getElementById('btnMicSi').addEventListener('click', pedirMicrofono);
 document.getElementById('btnMicNo').addEventListener('click', function(){
   cerrarModalMic(); guardar('mq_mic_preguntado', true);
-  estado.textContent = 'Puedes escribir la frase en el cuadro. Si cambias de idea, toca «Hablar».';
+  destinoMic().est.textContent = 'Puedes escribir la frase en el cuadro. Si cambias de idea, toca «Hablar».';
 });
 document.querySelectorAll('[data-cerrar-mic]').forEach(function(b){ b.addEventListener('click', cerrarModalMic); });
 document.getElementById('modalMic').addEventListener('keydown', function(e){ if(e.key === 'Escape') cerrarModalMic(); });
 
-btnHablar.addEventListener('click', function(){
+function alternarHabla(destino){
   if(escuchando){ reco.stop(); return; }
+  micDestino = destino;
   if(!Reconocedor || dentroDeApp){ abrirModalMic('micNoDisponible'); return; }
   estadoMicrofono().then(function(s){
     if(s === 'granted') empezarAEscuchar();
     else if(s === 'denied') abrirModalMic('micBloqueado');
     else abrirModalMic('micPedir');
   });
-});
+}
+btnHablar.addEventListener('click', function(){ alternarHabla('es'); });
+btnHablarMi.addEventListener('click', function(){ alternarHabla('mi'); });
 function empezarAEscuchar(){
   detenerTodo();
+  var d = destinoMic(), hubo = '';
   reco = new Reconocedor();
-  reco.lang = 'es-US';
+  reco.lang = 'es-US';   // no existe reconocimiento en miskito: en esa sección se aproxima después
   reco.interimResults = true;
   reco.continuous = false;
-  var base = txtEs.value ? txtEs.value.trim() + ' ' : '';
+  var base = d.txt.value ? d.txt.value.trim() + ' ' : '';
   reco.onresult = function(e){
     var t = '';
     for(var i=0;i<e.results.length;i++) t += e.results[i][0].transcript;
-    txtEs.value = base + t;
+    hubo = t;
+    d.txt.value = base + t;
   };
-  reco.onstart = function(){ escuchando = true; btnHablar.classList.add('grabando'); btnHablar.textContent = '⏹️ Escuchando…'; estado.textContent = 'Habla ahora en español.'; };
+  reco.onstart = function(){ escuchando = true; d.btn.classList.add('grabando'); d.btn.textContent = '⏹️ Escuchando…'; d.est.textContent = 'Habla ahora en ' + d.idioma + '.'; };
   reco.onerror = function(e){
     if(e.error === 'not-allowed' || e.error === 'service-not-allowed'){
       estadoMicrofono().then(function(s){
         if(s === 'denied') abrirModalMic('micBloqueado');
-        else estado.textContent = '✅ Micrófono listo. Toca «Hablar» para empezar.';
+        else d.est.textContent = '✅ Micrófono listo. Toca «Hablar» para empezar.';
       });
     } else if(e.error === 'network'){
-      estado.textContent = 'El reconocimiento de voz necesita internet. Revisa la conexión o escribe la frase.';
+      d.est.textContent = 'El reconocimiento de voz necesita internet. Revisa la conexión o escribe la frase.';
     } else if(e.error !== 'aborted'){
-      estado.textContent = 'No se escuchó bien. Intenta otra vez.';
+      d.est.textContent = 'No se escuchó bien. Intenta otra vez.';
     }
   };
   reco.onend = function(){
-    escuchando = false; btnHablar.classList.remove('grabando'); btnHablar.textContent = '🎙️ Hablar';
-    if(txtEs.value.trim()){ estado.textContent = ''; traducir(); }
+    escuchando = false; d.btn.classList.remove('grabando'); d.btn.textContent = '🎙️ Hablar';
+    if(d.idioma === 'miskito'){
+      if(hubo.trim()){
+        var ap = aproximarMiskito(hubo);
+        d.txt.value = base + ap.texto;
+        traducirMi();
+        d.est.textContent = 'Se escuchó: «' + hubo.trim() + '». ' + (ap.cambio ? 'Se ajustó a las palabras miskitas más parecidas: revisa el texto.' : 'Revisa el texto.');
+      }
+    } else if(d.txt.value.trim()){ d.est.textContent = ''; traducir(); }
   };
-  try{ reco.start(); }catch(err){ estado.textContent = 'Toca «Hablar» para empezar.'; }
+  try{ reco.start(); }catch(err){ d.est.textContent = 'Toca «Hablar» para empezar.'; }
 }
 document.getElementById('btnLimpiar').addEventListener('click', function(){
   txtEs.value = ''; estado.textContent = ''; document.getElementById('panelResultado').classList.add('oculto'); txtEs.focus();
@@ -1949,6 +2016,281 @@ document.getElementById('btnGuardarFrase').addEventListener('click', function(){
   estado.textContent = '⭐ Guardada en «Frases → Mis frases». Ahí se puede corregir y grabar.';
 });
 
+/* ---------- Traducción de miskito a español (por reglas, sin internet) ----------
+   Recorre al revés las mismas reglas del traductor: vocabulario del material, conjugación
+   (las formas se generan con conjugar() para que los dos sentidos coincidan) y orden de la frase:
+   el verbo final del miskito pasa a ir detrás del sujeto y las posposiciones van delante del nombre. */
+var ultimoMi = null;   // {mi, es, estado, id, nota, palabras}
+var PRON_MI = {yang:{es:'yo', pl:'nosotros', p:0}, man:{es:'tú', pl:'ustedes', p:1}, witin:{es:'él/ella', pl:'ellos', p:2}};
+var POSPOSICION = {purara:'sobre', munhtara:'debajo de', bilara:'dentro de', latara:'fuera de', mawanra:'delante de',
+  ninara:'detrás de', tnayara:'al lado de', midilra:'entre', wina:'desde'};
+var PREGUNTA_MI = {dia:'qué', anira:'dónde', ahkia:'cuándo', nahki:'cómo', ya:'quién', ani:'cuál', diakan:'por qué'};
+var NUM_MI = {kumi:'un', yumhpa:'tres', walhwal:'cuatro', matsip:'cinco', ailal:'muchos', wiria:'pocos'};
+var SER = [['soy','eres','es'],['somos','son','son']], ESTAR = [['estoy','estás','está'],['estamos','están','están']];
+
+// Español de una entrada: primera opción, sin notas ni signos
+function espanolDe(f){
+  var t = f.es.split('/')[0].replace(/\(.*?\)/g,'').replace(/[¿?¡!…]/g,'').trim();
+  return t.charAt(0).toLowerCase() + t.slice(1);
+}
+function pluralEs(es){
+  var p = es.split(' '), w = p[0];
+  p[0] = /[aeiouáéíóú]$/.test(w) ? w + 's' : /z$/.test(w) ? w.slice(0,-1) + 'ces' : w + 'es';
+  return p.join(' ');
+}
+function conjugarEs(inf, tiempo, persona, plural){
+  var k = plural ? (persona === 0 ? 3 : 4) : persona;
+  var lista = (IRREG[inf] && IRREG[inf][tiempo]) || REGULARES[inf.slice(-2)][tiempo].map(function(fin){ return inf.slice(0,-2) + fin; });
+  return lista[k];
+}
+function indiceMiskito(){
+  var frases = {}, formas = {};
+  todasLasFrases().forEach(function(f){
+    if(!f.mi) return;
+    f.mi.split(' / ').forEach(function(opcion){
+      opcion.split(' ar ').forEach(function(parte){
+        var n = normal(parte);
+        if(n && (!frases[n] || (f.estado === 'mep' && frases[n].estado !== 'mep'))) frases[n] = f;
+      });
+    });
+  });
+  var inf = indiceVerbos().infinitivos;
+  Object.keys(inf).forEach(function(i){
+    ['presente','pasado','futuro'].forEach(function(t){
+      [0,1,2].forEach(function(p){
+        var n = normal(conjugar(inf[i], t, p));
+        if(!formas[n]) formas[n] = {inf:i, tiempo:t, persona:p};
+      });
+    });
+  });
+  return {frases:frases, formas:formas};
+}
+function analizarMi(n, ind){
+  var a = {items:[], tiempo:[], sujeto:null, pregunta:'', verbo:null, copula:null, hay:false, negar:false, piezas:[]};
+  function anotar(mi, es){ a.piezas.push({es:mi, mi:es, f:true}); }
+  function ultimoItem(){ return a.items[a.items.length - 1]; }
+  for(var i = 0; i < n.length; i++){
+    var w = n[i];
+    if(w === 'bara' && n[i+1] === 'sa'){ a.hay = true; anotar('bara sa', 'hay'); i++; continue; }
+    if(w === 'ba'){ if(ultimoItem() && !a.sujeto){ a.sujeto = a.items.pop(); a.sujeto.persona = 2; } continue; }
+    if(w === 'nani'){
+      var pl = ultimoItem();
+      if(pl){ pl.es = pluralEs(pl.es); pl.plural = true; }
+      else if(a.sujeto){ a.sujeto.plural = true; a.sujeto.es = a.sujeto.pron ? a.sujeto.pron.pl : pluralEs(a.sujeto.es); }
+      anotar('nani', '(plural)'); continue;
+    }
+    if(PRON_MI[w] && !a.sujeto){ a.sujeto = {es:PRON_MI[w].es, pron:PRON_MI[w], persona:PRON_MI[w].p}; anotar(w, PRON_MI[w].es); continue; }
+    if(w === 'apia'){ a.negar = true; anotar('apia', 'no'); continue; }
+    if((w === 'sa' || w === 'sna' || w === 'sma') && !a.verbo){ a.copula = ['sna','sma','sa'].indexOf(w); anotar(w, 'ser / estar'); continue; }
+    if(w === 'ra' && ultimoItem()){ ultimoItem().prep = 'ra'; anotar('ra', 'a, en'); continue; }
+    if(POSPOSICION[w] && ultimoItem()){ ultimoItem().es = POSPOSICION[w] + ' ' + ultimoItem().es; ultimoItem().lugar = true; anotar(w, POSPOSICION[w]); continue; }
+    if(w === 'wal' && ultimoItem()){
+      var u2 = ultimoItem();
+      if(n[i+1] === 'bara'){ u2.es = 'dos ' + pluralEs(u2.es); anotar('wal', 'dos'); }
+      else { u2.es = 'con ' + u2.es; anotar('wal', 'con'); }
+      continue;
+    }
+    if(NUM_MI[w] && ultimoItem()){
+      var u3 = ultimoItem();
+      u3.es = NUM_MI[w] + ' ' + (w === 'kumi' ? u3.es : pluralEs(u3.es)); anotar(w, NUM_MI[w]); continue;
+    }
+    if(w === 'an'){
+      if(i === 0){ a.pregunta = 'cuántos'; anotar('an', 'cuántos'); }
+      else { a.items.push({es:'y'}); anotar('an', 'y'); }
+      continue;
+    }
+    if(PREGUNTA_MI[w] && (i === 0 || (i === 1 && a.sujeto)) && !a.pregunta){ a.pregunta = PREGUNTA_MI[w]; anotar(w, PREGUNTA_MI[w]); continue; }
+    var hallado = null, largo = 0, verboLargo = 0;
+    for(var L = Math.min(5, n.length - i); L >= 2 && !hallado && !verboLargo; L--){
+      var clave = n.slice(i, i + L).join(' ');
+      if(ind.frases[clave]){ hallado = ind.frases[clave]; largo = L; }
+      else if(ind.formas[clave] && !a.verbo){ a.verbo = ind.formas[clave]; anotar(clave, ind.formas[clave].inf); verboLargo = L; }
+    }
+    if(verboLargo){ i += verboLargo - 1; continue; }
+    if(!hallado && ind.formas[w] && !a.verbo){ a.verbo = ind.formas[w]; anotar(w, ind.formas[w].inf); continue; }
+    if(!hallado && ind.frases[w]){ hallado = ind.frases[w]; largo = 1; }
+    if(hallado){
+      var es = espanolDe(hallado), mi = n.slice(i, i + largo).join(' ');
+      if(hallado.cat === 'tiempo') a.tiempo.push(es); else a.items.push({es:es});
+      anotar(mi, es); i += largo - 1; continue;
+    }
+    a.items.push({es:'[' + w + ']'}); a.piezas.push({es:w, mi:'', f:false});
+  }
+  return a;
+}
+function traducirOracionMi(texto, ind){
+  var esPregunta = /[?¿]/.test(texto), n = normal(texto).split(' ').filter(Boolean), s = n.join(' '), m, a;
+  function textoDe(lista){ return lista.map(function(it){ return it.es; }).join(' '); }
+
+  // Plantillas de ejemplos del material: las mismas de español a miskito
+  if((m = s.match(/^yang nini ba (.+)$/))){
+    var orig = texto.replace(/[¿?¡!.,;]/g,' ').trim().split(/\s+/).slice(3).join(' ');
+    return {es:'Yo me llamo ' + orig, piezas:[{es:'yang nini ba', mi:'yo me llamo', f:true}], regla:'Yang nini ba … (yo me llamo …)'};
+  }
+  if((m = s.match(/^yang (\S+) mani brisna$/))){
+    var cant = {kumi:'un', wal:'dos', yumhpa:'tres', walhwal:'cuatro', matsip:'cinco'}[m[1]] || m[1];
+    return {es:'Yo tengo ' + cant + (cant === 'un' ? ' año' : ' años'), piezas:[{es:'yang … mani brisna', mi:'yo tengo … años', f:true}], regla:'Yang … mani brisna (yo tengo … años)'};
+  }
+  if((m = s.match(/^(.+) (laiksna|laiksma|laik apia)$/))){
+    a = analizarMi(m[1].split(' '), ind);
+    var ini = {laiksna:'Me gusta ', laiksma:'Te gusta ', 'laik apia':'No me gusta '}[m[2]];
+    return {es:ini + textoDe(a.items), piezas:a.piezas.concat([{es:m[2], mi:ini.trim().toLowerCase(), f:true}]), regla:'objeto + laiksna / laiksma (me gusta / te gusta)'};
+  }
+  if((m = s.match(/^(.+) klauhan$/))){
+    a = analizarMi(m[1].split(' '), ind);
+    return {es:'Me duele ' + textoDe(a.items), piezas:a.piezas.concat([{es:'klauhan', mi:'me duele', f:true}]), regla:'parte del cuerpo + klauhan (me duele …)'};
+  }
+
+  a = analizarMi(n, ind);
+  var movimiento = a.verbo && /^(ir|venir|llegar|salir|entrar|caminar|correr|regresar|volver)$/.test(a.verbo.inf);
+  var hayLugar = a.items.some(function(it){ return it.prep === 'ra' || it.lugar; });
+  a.items.forEach(function(it){ if(it.prep === 'ra') it.es = (movimiento ? 'a ' : 'en ') + it.es; });
+
+  // Sin «ba», el primer nombre hace de sujeto en frases como «Luisa lilia sa»
+  if(a.copula !== null && !a.sujeto && a.items.length > 1){ a.sujeto = a.items.shift(); a.sujeto.persona = 2; }
+  if(a.copula === null && !a.verbo && !a.hay && a.negar && a.sujeto) a.copula = a.sujeto.persona;
+  // Con verbo en 3.ª persona y sin sujeto escrito, el primer nombre hace de sujeto: «Tuktan nani pian»
+  if(a.verbo && a.verbo.persona === 2 && !a.sujeto && a.items.length && !a.items[0].prep && !a.items[0].lugar){ a.sujeto = a.items.shift(); a.sujeto.persona = 2; }
+
+  var out = [], regla;
+  if(a.pregunta) out.push(a.pregunta);
+  out = out.concat(a.tiempo);
+  if(a.sujeto && !a.pregunta) out.push(a.sujeto.es);   // en preguntas el sujeto va después: ¿Dónde vas tú?
+  var plural = !!(a.sujeto && a.sujeto.plural);
+  if(a.hay){
+    out.push(a.negar ? 'no hay' : 'hay'); regla = 'nombre + cantidad + bara sa (hay …)';
+  } else if(a.copula !== null){
+    var persona = a.sujeto ? a.sujeto.persona : a.copula;
+    if(a.negar) out.push('no');
+    out.push((hayLugar || a.pregunta === 'dónde' ? ESTAR : SER)[plural ? 1 : 0][persona]);
+    regla = 'sa / sna / sma = es, está (ser o estar se elige por el contexto)';
+  } else if(a.verbo){
+    if(a.negar) out.push('no');
+    out.push(conjugarEs(a.verbo.inf, a.verbo.tiempo, a.sujeto ? a.sujeto.persona : a.verbo.persona, plural));
+    regla = 'el verbo final pasa a ir detrás del sujeto' + (a.negar ? '; apia = no' : '');
+  } else {
+    if(a.negar) out.push('no');
+    regla = 'palabra por palabra';
+  }
+  if(a.sujeto && a.pregunta) out.push(a.sujeto.es);
+  out.push(textoDe(a.items));
+  var es = out.join(' ').replace(/\s+/g,' ').trim();
+  if(es) es = es.charAt(0).toUpperCase() + es.slice(1);
+  if(es && (esPregunta || a.pregunta)) es = '¿' + es + '?';
+  return {es:es, piezas:a.piezas, regla:regla};
+}
+function traducirReglasMi(texto, ind){
+  var trozos = texto.match(/[^,.;!?¡¿]*[¿¡]?[^,.;!?]+[,.;!?]*/g) || [texto];
+  var salida = [], piezas = [], reglas = [];
+  trozos.forEach(function(t){
+    var limpio = t.trim(); if(!limpio) return;
+    var exacta = ind.frases[normal(limpio)];
+    if(exacta && normal(limpio).indexOf(' ') > 0){
+      salida.push(exacta.es.replace(/…/g,'').trim());
+      piezas.push({es:limpio.replace(/[¿?¡!.,;]/g,''), mi:exacta.es, f:true});
+      if(reglas.indexOf('frase del material') < 0) reglas.push('frase del material');
+      return;
+    }
+    var r = traducirOracionMi(limpio, ind), signo = (limpio.match(/[.;!]+$/) || [''])[0];
+    if(r.es) salida.push(r.es + signo);
+    piezas = piezas.concat(r.piezas);
+    if(r.regla && reglas.indexOf(r.regla) < 0) reglas.push(r.regla);
+  });
+  return {es:salida.join(' '), piezas:piezas, reglas:reglas,
+    faltan:piezas.filter(function(p){ return !p.f; }).map(function(p){ return p.es; })};
+}
+function mostrarResultadoMi(r){
+  ultimoMi = r;
+  document.getElementById('panelResultadoMi').classList.remove('oculto');
+  document.getElementById('resEspanol').textContent = r.es || '—';
+  document.getElementById('resChipMi').innerHTML = chipEstado(r.estado) + (r.origen ? ' <span class="nota">'+esc(r.origen)+'</span>' : '');
+  document.getElementById('resNotaMi').textContent = r.nota || '';
+  document.getElementById('resPalabrasMi').innerHTML = (r.palabras || []).map(function(p){
+    return p.f ? '<span class="palabra">'+esc(p.es)+' → <b>'+esc(p.mi)+'</b></span>'
+               : '<span class="palabra falta">'+esc(p.es)+' → ?</span>';
+  }).join('');
+  document.getElementById('btnGuardarFraseMi').classList.toggle('oculto', r.estado !== 'reglas' || !r.es || (r.faltan || []).length > 0);
+  document.getElementById('panelResultadoMi').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+function oirEspanol(r){ decir(r.es.replace(/[\[\]]/g,'').replace(/…/g,''), 'es-traducirmi'); }
+function traducirMi(){
+  var mi = txtMi.value.trim();
+  if(!mi){ estadoMi.textContent = 'Escribe o di una frase primero.'; return; }
+  detenerTodo();
+  estadoMi.textContent = '';
+  var ind = indiceMiskito(), exacta = ind.frases[normal(mi)], res;
+  if(exacta){
+    res = {mi:mi, es:exacta.es.replace(/…/g,'').trim(), estado:exacta.estado, origen:'Frase del material', id:exacta.id};
+  } else {
+    var r = traducirReglasMi(mi, ind);
+    res = {mi:mi, es:r.es, estado:'reglas', id:idFrase(r.es || mi), palabras:r.piezas, faltan:r.faltan,
+      origen: r.faltan.length ? 'Faltan palabras' : 'Todas las palabras se encontraron',
+      nota:'Cómo se armó: ' + r.reglas.join(' · ') + '. No siempre agrega artículos como «el» o «la».' +
+        (r.faltan.length ? ' Sin traducir: ' + r.faltan.join(', ') + '.' : '')};
+  }
+  mostrarResultadoMi(res);
+  if(res.es) oirEspanol(res);
+}
+/* El navegador escucha como si fuera español: se compara cómo suena con el vocabulario miskito */
+function clavePhon(t){
+  return normal(t).replace(/x/g,'ks').replace(/c([ei])/g,'s$1').replace(/qu/g,'k').replace(/[cq]/g,'k').replace(/z/g,'s')
+    .replace(/v/g,'b').replace(/ll/g,'y').replace(/[hj]/g,'').replace(/gu([ae])/g,'u$1').replace(/w/g,'u').replace(/(.)\1+/g,'$1');
+}
+function distancia(a, b){
+  var prev = [], i, j;
+  for(j = 0; j <= b.length; j++) prev[j] = j;
+  for(i = 1; i <= a.length; i++){
+    var act = [i];
+    for(j = 1; j <= b.length; j++) act[j] = Math.min(prev[j] + 1, act[j-1] + 1, prev[j-1] + (a[i-1] === b[j-1] ? 0 : 1));
+    prev = act;
+  }
+  return prev[b.length];
+}
+function parecido(a, b){ return 1 - distancia(a, b) / Math.max(a.length, b.length, 1); }
+function aproximarMiskito(oido){
+  var ind = indiceMiskito(), frases = Object.keys(ind.frases), palabras = {};
+  frases.concat(Object.keys(ind.formas), Object.keys(PRON_MI), Object.keys(POSPOSICION), Object.keys(PREGUNTA_MI), Object.keys(NUM_MI),
+    ['ba','nani','ra','wal','apia','sa','sna','sma','an','bara']).forEach(function(k){
+      k.split(' ').forEach(function(w){ palabras[w] = true; });
+    });
+  var lista = Object.keys(palabras), entero = clavePhon(oido).replace(/\s/g,''), mejor = '', valor = 0;
+  frases.forEach(function(f){
+    var v = parecido(entero, clavePhon(f).replace(/\s/g,''));
+    if(v > valor){ valor = v; mejor = f; }
+  });
+  if(valor >= 0.8) return {texto:mejor, cambio:normal(oido) !== mejor};
+  function buscar(sonido, minimo){
+    var m = '', v = minimo;
+    lista.forEach(function(w){ var p = parecido(sonido, clavePhon(w)); if(p > v){ v = p; m = w; } });
+    return m;
+  }
+  var oidas = normal(oido).split(' ').filter(Boolean), salida = [], cambio = false;
+  for(var i = 0; i < oidas.length; i++){
+    var unidas = i + 1 < oidas.length && !palabras[oidas[i]] && !palabras[oidas[i+1]] ? buscar(clavePhon(oidas[i] + oidas[i+1]), 0.79) : '';
+    if(unidas){ salida.push(unidas); cambio = true; i++; continue; }
+    if(palabras[oidas[i]]){ salida.push(oidas[i]); continue; }
+    var una = oidas[i].length > 1 ? buscar(clavePhon(oidas[i]), 0.65) : '';
+    if(una) cambio = true;
+    salida.push(una || oidas[i]);
+  }
+  return {texto:salida.join(' '), cambio:cambio};
+}
+document.getElementById('btnTraducirMi').addEventListener('click', traducirMi);
+txtMi.addEventListener('keydown', function(e){ if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); traducirMi(); } });
+document.getElementById('btnLimpiarMi').addEventListener('click', function(){
+  txtMi.value = ''; estadoMi.textContent = ''; document.getElementById('panelResultadoMi').classList.add('oculto'); txtMi.focus();
+});
+document.getElementById('btnOirEspanol').addEventListener('click', function(){ if(ultimoMi) oirEspanol(ultimoMi); });
+document.getElementById('btnOirMiskito').addEventListener('click', function(){ if(ultimoMi) escucharMiskito(ultimoMi.id, ultimoMi.mi); });
+document.getElementById('btnGuardarFraseMi').addEventListener('click', function(){
+  if(!ultimoMi || !ultimoMi.es) return;
+  if(!misFrases.some(function(f){ return idFrase(f.es) === idFrase(ultimoMi.es); })){
+    misFrases.push({es:ultimoMi.es, mi:ultimoMi.mi, estado:ultimoMi.estado});
+    guardar('mq_misfrases', misFrases);
+  }
+  estadoMi.textContent = '⭐ Guardada en «Frases → Mis frases». Ahí se puede corregir y grabar.';
+});
+
 /* ---------- Documentos (Word y texto) ---------- */
 var doc = null;          // {tipo:'texto', nombre, datos}
 var docResultado = null; // {parrafos:[{espanol, miskito}], estado, notas}
@@ -2096,6 +2438,14 @@ function contenidoFicha(seccion){
       if(ultimo.retro) lineas.push('Dice: ' + ultimo.retro);
       lineas.push('Estado: ' + (ESTADO_TXT[ultimo.estado] || ''));
       if(ultimo.nota) lineas.push(ultimo.nota);
+    }
+  } else if(seccion === 'traducirmi'){
+    titulo = 'Traducción miskito – español';
+    if(ultimoMi){
+      lineas.push('Miskito: ' + ultimoMi.mi);
+      lineas.push('Español: ' + (ultimoMi.es || '—'));
+      lineas.push('Estado: ' + (ESTADO_TXT[ultimoMi.estado] || ''));
+      if(ultimoMi.nota) lineas.push(ultimoMi.nota);
     }
   } else if(seccion === 'documentos'){
     titulo = 'Documento traducido al miskito' + (doc ? ': ' + doc.nombre : '');
