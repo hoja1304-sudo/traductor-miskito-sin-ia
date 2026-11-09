@@ -197,7 +197,6 @@ label{display:block;font-weight:600;margin:10px 0 4px}
 
   <div class="rejilla">
     <button class="tarjeta-inicio" style="background:#0f7c8c" data-ir="traducir"><span class="ico">🎙️</span><b>Traducir de español a miskito</b><span>Habla o escribe en español y escucha la traducción.</span></button>
-    <button class="tarjeta-inicio" style="background:#0b6e5f" data-ir="traducirmi"><span class="ico">🗣️</span><b>Traducir de miskito a español</b><span>Habla o escribe en miskito y escucha la traducción en español.</span></button>
     <button class="tarjeta-inicio" style="background:#c4502a" data-ir="frases"><span class="ico">💬</span><b>Frases</b><span>Frases de todos los días, con voz grabada.</span></button>
     <button class="tarjeta-inicio" style="background:#23874f" data-ir="diccionario"><span class="ico">📖</span><b>Diccionario</b><span>Busca palabras en español o en miskito.</span></button>
     <button class="tarjeta-inicio" style="background:#b45309" data-ir="imagenes"><span class="ico">🖼️</span><b>Imágenes</b><span>Dibujos de la vida diaria con su frase en miskito.</span></button>
@@ -1162,15 +1161,13 @@ function alternarGrabacion(id, boton){
 var seccionActual = 'inicio';
 function ir(id){
   detenerTodo();
-  var hoja = id === 'traducirmi' ? 'traducir' : id;   // las dos traducciones están en la misma hoja
-  document.querySelectorAll('.seccion').forEach(function(s){ s.classList.toggle('oculto', s.id !== hoja); });
-  seccionActual = hoja;
+  document.querySelectorAll('.seccion').forEach(function(s){ s.classList.toggle('oculto', s.id !== id); });
+  seccionActual = id;
   window.scrollTo(0,0);
-  if(id === 'traducirmi') document.getElementById('columnaMi').scrollIntoView({block:'start'});
   if(id === 'frases'){ catActual = null; pintarFrases(); }
   if(id === 'diccionario'){ pintarDiccionario(); llenarVerbos(); }
   if(id === 'imagenes') pintarImagenes();
-  if(id === 'traducir' || id === 'traducirmi'){ micDestino = id === 'traducirmi' ? 'mi' : 'es'; ofrecerMicrofono(); }
+  if(id === 'traducir'){ micDestino = 'es'; ofrecerMicrofono(); }
 }
 document.addEventListener('click', function(e){
   var b = e.target.closest('[data-ir]');
